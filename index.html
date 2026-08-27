@@ -1422,6 +1422,41 @@
 
         }
 
+    
+
+        /* AUTH */
+        .auth-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px 20px;
+        }
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card);
+            border-radius: 28px;
+            padding: 30px 24px 24px;
+            border: 1px solid rgba(0,0,0,0.025);
+        }
+        .auth-mark {
+            width: 58px; height: 58px; border-radius: 18px;
+            background: #ebe5d9; display:flex; align-items:center; justify-content:center;
+            font-size: 28px; margin-bottom: 20px;
+        }
+        .auth-title { font-size: 34px; font-weight: 650; letter-spacing:-1.2px; margin:0; }
+        .auth-subtitle { color:var(--secondary); font-size:14px; margin:7px 0 26px; line-height:1.45; }
+        .auth-tabs { display:flex; background:#e9e4da; padding:4px; border-radius:14px; margin-bottom:20px; }
+        .auth-tab { flex:1; border:0; background:transparent; color:var(--secondary); padding:10px; border-radius:11px; font-size:14px; font-weight:550; }
+        .auth-tab.active { background:var(--card); color:var(--text); box-shadow:0 1px 4px rgba(0,0,0,.05); }
+        .auth-button { width:100%; border:0; background:var(--accent); color:white; border-radius:16px; padding:15px; font-size:16px; font-weight:600; margin-top:4px; }
+        .auth-message { min-height:20px; color:var(--secondary); font-size:13px; line-height:1.4; margin-top:13px; }
+        .auth-error { color:#9b5f52; }
+        .auth-loading { opacity:.65; pointer-events:none; }
+        .app-hidden, .nav-hidden { display:none !important; }
+        .account-button { font-size: 18px; }
+
     </style>
 
 </head>
@@ -1432,7 +1467,34 @@
 
 
 
-<div class="app">
+
+<div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+        <div class="auth-mark">💊</div>
+        <h1 class="auth-title">Pill Tracker</h1>
+        <div class="auth-subtitle">Твои лекарства и история будут синхронизироваться между устройствами.</div>
+
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="authSignInTab" onclick="setAuthMode('signin')">Войти</button>
+            <button class="auth-tab" id="authSignUpTab" onclick="setAuthMode('signup')">Регистрация</button>
+        </div>
+
+        <div class="field">
+            <label class="field-label">Email</label>
+            <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
+        </div>
+
+        <div class="field">
+            <label class="field-label">Пароль</label>
+            <input id="authPassword" type="password" autocomplete="current-password" placeholder="Минимум 6 символов">
+        </div>
+
+        <button class="auth-button" id="authSubmit" onclick="submitAuth()">Войти</button>
+        <div class="auth-message" id="authMessage"></div>
+    </div>
+</div>
+
+<div class="app app-hidden">
 
 
 
@@ -1444,7 +1506,7 @@
 
     <div class="top-bar">
 
-        <button class="menu-button">
+        <button class="menu-button" onclick="signOut()" title="Выйти">
 
             ☰
 
@@ -1734,7 +1796,7 @@
 
 ====================================== -->
 
-<div class="bottom-nav">
+<div class="bottom-nav nav-hidden" id="bottomNav">
 
 
 
@@ -2240,2582 +2302,640 @@
 
 
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-
-
-
 /* ========================================
+   SUPABASE CONFIG
+   ======================================== */
 
-   DATA
+const SUPABASE_URL = "https://bwlxxdvtigiuzsypcktf.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Wuk1kCjL-BSQOZjOf_J-cg_AkH_Ud_D";
 
-======================================== */
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+);
 
-
-
-let medicines =
-
-    JSON.parse(
-
-        localStorage.getItem(
-
-            "medicines"
-
-        )
-
-    ) || [];
-
-
-
-let history =
-
-    JSON.parse(
-
-        localStorage.getItem(
-
-            "history"
-
-        )
-
-    ) || [];
-
-
-
+let currentUser = null;
+let medicines = [];
+let history = [];
 let selectedIcon = "💊";
-
-
-
-
+let currentHistoryPeriod = "today";
+let authMode = "signin";
 
 /* ========================================
-
-   MIGRATION
-
-======================================== */
-
-
-
-medicines = medicines.map(
-
-    medicine => {
-
-
-
-        if (
-
-            Array.isArray(
-
-                medicine.schedules
-
-            )
-
-        ) {
-
-            return medicine;
-
-        }
-
-
-
-        return {
-
-            id:
-
-                medicine.id ||
-
-                Date.now().toString(),
-
-            name:
-
-                medicine.name ||
-
-                "Лекарство",
-
-            strength:
-
-                medicine.strength ||
-
-                medicine.dose ||
-
-                "",
-
-            icon:
-
-                medicine.icon ||
-
-                "💊",
-
-            note:
-
-                medicine.note ||
-
-                "",
-
-            schedules: [
-
-                {
-
-                    id:
-
-                        Date.now()
-
-                        .toString()
-
-                        +
-
-                        "-migrated",
-
-                    time:
-
-                        medicine.time ||
-
-                        "08:00",
-
-                    amount:
-
-                        "1",
-
-                    food:
-
-                        "any"
-
-                }
-
-            ]
-
-        };
-
-    }
-
-);
-
-
-
-localStorage.setItem(
-
-    "medicines",
-
-    JSON.stringify(
-
-        medicines
-
-    )
-
-);
-
-
-
-
-
-/* ========================================
-
-   DATE
-
-======================================== */
-
-
+   HELPERS
+   ======================================== */
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
 
 function getToday() {
-
-    const now = new Date();
-
-    return now
-
-        .toISOString()
-
-        .split("T")[0];
-
+    return dateKey(new Date());
 }
 
-
-
-
-
-function showDate() {
-
-    const now = new Date();
-
-    document.getElementById(
-
-        "currentDate"
-
-    ).innerText =
-
-        now.toLocaleDateString(
-
-            "ru-RU",
-
-            {
-
-                weekday: "long",
-
-                day: "numeric",
-
-                month: "long"
-
-            }
-
-        );
-
+function dateFromOffset(daysAgo) {
+    const date = new Date();
+    date.setHours(0,0,0,0);
+    date.setDate(date.getDate() - daysAgo);
+    return date;
 }
 
-
-
-
-
-/* ========================================
-
-   SAVE
-
-======================================== */
-
-
-
-function saveData() {
-
-    localStorage.setItem(
-
-        "medicines",
-
-        JSON.stringify(
-
-            medicines
-
-        )
-
-    );
-
-
-
-    localStorage.setItem(
-
-        "history",
-
-        JSON.stringify(
-
-            history
-
-        )
-
-    );
-
+function dateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth()+1).padStart(2,"0");
+    const day = String(date.getDate()).padStart(2,"0");
+    return `${year}-${month}-${day}`;
 }
 
-
-
-
-
-/* ========================================
-
-   FOOD TEXT
-
-======================================== */
-
-
+function formatHistoryDate(date) {
+    const today = new Date();
+    const yesterday = dateFromOffset(1);
+    if (dateKey(date) === dateKey(today)) return "Сегодня";
+    if (dateKey(date) === dateKey(yesterday)) return "Вчера";
+    return date.toLocaleDateString("ru-RU", {
+        weekday:"long", day:"numeric", month:"long"
+    });
+}
 
 function foodText(food) {
-
-    if (
-
-        food === "before"
-
-    ) {
-
-        return "До еды";
-
-    }
-
-
-
-    if (
-
-        food === "during"
-
-    ) {
-
-        return "Во время еды";
-
-    }
-
-
-
-    if (
-
-        food === "after"
-
-    ) {
-
-        return "После еды";
-
-    }
-
-
-
+    if (food === "before") return "До еды";
+    if (food === "during") return "Во время еды";
+    if (food === "after") return "После еды";
     return "Не зависит от еды";
-
 }
 
-
-
-
-
-/* ========================================
-
-   RENDER MEDICINES
-
-======================================== */
-
-
-
-function renderMedicines() {
-
-    const list =
-
-        document.getElementById(
-
-            "medicineList"
-
-        );
-
-
-
-    list.innerHTML = "";
-
-
-
-    let schedules = [];
-
-
-
-    medicines.forEach(
-
-        medicine => {
-
-            if (
-
-                !Array.isArray(
-
-                    medicine.schedules
-
-                )
-
-            ) {
-
-                return;
-
-            }
-
-
-
-            medicine.schedules.forEach(
-
-                schedule => {
-
-                    schedules.push({
-
-                        medicine,
-
-                        schedule
-
-                    });
-
-                }
-
-            );
-
-        }
-
-    );
-
-
-
-    schedules.sort(
-
-        (a, b) =>
-
-            a.schedule.time.localeCompare(
-
-                b.schedule.time
-
-            )
-
-    );
-
-
-
-    if (
-
-        schedules.length === 0
-
-    ) {
-
-        list.innerHTML = `
-
-            <div class="empty">
-
-                Пока нет лекарств.<br>
-
-                Добавь первое лекарство ниже.
-
-            </div>
-
-        `;
-
-
-
-        updateProgress();
-
+function localDateTimeFromHistory(entry) {
+    const time = entry.time || "00:00";
+    return `${entry.date}T${time}:00`;
+}
+
+function showDate() {
+    const now = new Date();
+    document.getElementById("currentDate").innerText = now.toLocaleDateString("ru-RU", {
+        weekday:"long", day:"numeric", month:"long"
+    });
+}
+
+function setAppVisible(visible) {
+    document.querySelector(".app").classList.toggle("app-hidden", !visible);
+    document.getElementById("bottomNav").classList.toggle("nav-hidden", !visible);
+    document.getElementById("authScreen").classList.toggle("app-hidden", visible);
+}
+
+function setAuthMode(mode) {
+    authMode = mode;
+    document.getElementById("authSignInTab").classList.toggle("active", mode === "signin");
+    document.getElementById("authSignUpTab").classList.toggle("active", mode === "signup");
+    document.getElementById("authSubmit").innerText = mode === "signin" ? "Войти" : "Создать аккаунт";
+    document.getElementById("authPassword").autocomplete = mode === "signin" ? "current-password" : "new-password";
+    document.getElementById("authMessage").innerText = "";
+}
+
+function authMessage(text, error=false) {
+    const el = document.getElementById("authMessage");
+    el.innerText = text;
+    el.classList.toggle("auth-error", error);
+}
+
+async function submitAuth() {
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value;
+    const button = document.getElementById("authSubmit");
+
+    if (!email || !password) {
+        authMessage("Введите email и пароль.", true);
         return;
-
+    }
+    if (password.length < 6) {
+        authMessage("Пароль должен содержать минимум 6 символов.", true);
+        return;
     }
 
-
-
-    schedules.forEach(
-
-        item => {
-
-
-
-            const medicine =
-
-                item.medicine;
-
-
-
-            const schedule =
-
-                item.schedule;
-
-
-
-            const taken =
-
-                history.some(
-
-                    entry =>
-
-                        entry.date ===
-
-                            getToday()
-
-                        &&
-
-                        entry.medicineId ===
-
-                            medicine.id
-
-                        &&
-
-                        entry.scheduleId ===
-
-                            schedule.id
-
-                );
-
-
-
-            const card =
-
-                document.createElement(
-
-                    "div"
-
-                );
-
-
-
-            card.className =
-
-                "medicine-card"
-
-                +
-
-                (
-
-                    taken
-
-                        ? " completed"
-
-                        : ""
-
-                );
-
-
-
-            card.innerHTML = `
-
-                <div class="medicine-icon">
-
-                    ${medicine.icon || "💊"}
-
-                </div>
-
-
-
-                <div class="medicine-info">
-
-
-
-                    <div class="medicine-time">
-
-                        ${schedule.time}
-
-                    </div>
-
-
-
-                    <div class="medicine-name">
-
-                        ${medicine.name}
-
-                    </div>
-
-
-
-                    <div class="medicine-dose">
-
-                        ${medicine.strength || ""}
-
-                        ${
-
-                            medicine.strength
-
-                                ? " · "
-
-                                : ""
-
-                        }
-
-                        ${schedule.amount} шт.
-
-                    </div>
-
-
-
-                    <div class="medicine-food">
-
-                        🍴
-
-                        ${foodText(
-
-                            schedule.food
-
-                        )}
-
-                    </div>
-
-
-
-                </div>
-
-
-
-                <button
-
-                    type="button"
-
-                    class="
-
-                        take-button
-
-                        ${
-
-                            taken
-
-                                ? "completed-button"
-
-                                : ""
-
-                        }
-
-                    "
-
-                    onclick="
-
-                        takeMedicine(
-
-                            '${medicine.id}',
-
-                            '${schedule.id}'
-
-                        )
-
-                    "
-
-                >
-
-                    ${
-
-                        taken
-
-                            ? "✓"
-
-                            : "Принять"
-
-                    }
-
-                </button>
-
-            `;
-
-
-
-            list.appendChild(
-
-                card
-
-            );
-
+    button.classList.add("auth-loading");
+    authMessage("Подключаемся…");
+
+    try {
+        if (authMode === "signup") {
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+            if (error) throw error;
+
+            if (data.session) {
+                await finishLogin(data.session);
+            } else {
+                authMessage("Аккаунт создан. Проверь почту и подтверди email, затем войди.");
+            }
+        } else {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            await finishLogin(data.session);
         }
-
-    );
-
-
-
-    updateProgress();
-
+    } catch (error) {
+        console.error(error);
+        authMessage(error.message || "Не удалось выполнить вход.", true);
+    } finally {
+        button.classList.remove("auth-loading");
+    }
 }
 
-
-
-
-
-/* ========================================
-
-   TAKE / UNTAKE MEDICINE
-
-======================================== */
-
-
-
-function takeMedicine(
-
-    medicineId,
-
-    scheduleId
-
-) {
-
-
-
-    /*
-
-        Ищем, есть ли уже
-
-        запись о сегодняшнем приёме.
-
-    */
-
-    const existingIndex =
-
-        history.findIndex(
-
-            entry =>
-
-                entry.date ===
-
-                    getToday()
-
-                &&
-
-                entry.medicineId ===
-
-                    medicineId
-
-                &&
-
-                entry.scheduleId ===
-
-                    scheduleId
-
-        );
-
-
-
-    /*
-
-        Если запись уже существует —
-
-        отменяем приём.
-
-    */
-
-    if (
-
-        existingIndex !== -1
-
-    ) {
-
-        history.splice(
-
-            existingIndex,
-
-            1
-
-        );
-
-    }
-
-
-
-    /*
-
-        Если записи нет —
-
-        отмечаем лекарство как принятое.
-
-    */
-
-    else {
-
-        history.push({
-
-            medicineId,
-
-            scheduleId,
-
-            date:
-
-                getToday(),
-
-            time:
-
-                new Date()
-
-                    .toLocaleTimeString(
-
-                        "ru-RU",
-
-                        {
-
-                            hour:
-
-                                "2-digit",
-
-                            minute:
-
-                                "2-digit"
-
-                        }
-
-                    )
-
-        });
-
-    }
-
-
-
-    saveData();
-
-
-
+async function finishLogin(session) {
+    currentUser = session.user;
+    setAppVisible(true);
+    await loadCloudData();
+    showDate();
     renderMedicines();
-
-    if (document.getElementById("statisticsScreen").style.display !== "none") {
-        renderStatistics();
-    }
-
-
-    /*
-
-        Если открыт экран истории —
-
-        обновляем его тоже.
-
-    */
-
-    const historyScreen =
-
-        document.getElementById(
-
-            "historyScreen"
-
-        );
-
-
-
-    if (
-
-        historyScreen.style.display !==
-
-        "none"
-
-    ) {
-
-        renderHistory();
-
-    }
-
+    showToday();
 }
 
-
-
-
-
-/* ========================================
-
-   PROGRESS
-
-======================================== */
-
-
-
-function updateProgress() {
-
-    let total = 0;
-
-    let taken = 0;
-
-
-
-    medicines.forEach(
-
-        medicine => {
-
-
-
-            if (
-
-                !Array.isArray(
-
-                    medicine.schedules
-
-                )
-
-            ) {
-
-                return;
-
-            }
-
-
-
-            medicine.schedules.forEach(
-
-                schedule => {
-
-
-
-                    total++;
-
-
-
-                    const wasTaken =
-
-                        history.some(
-
-                            entry =>
-
-                                entry.date ===
-
-                                    getToday()
-
-                                &&
-
-                                entry.medicineId ===
-
-                                    medicine.id
-
-                                &&
-
-                                entry.scheduleId ===
-
-                                    schedule.id
-
-                        );
-
-
-
-                    if (
-
-                        wasTaken
-
-                    ) {
-
-                        taken++;
-
-                    }
-
-                }
-
-            );
-
-        }
-
-    );
-
-
-
-    document.getElementById(
-
-        "takenCount"
-
-    ).innerText =
-
-        taken;
-
-
-
-    document.getElementById(
-
-        "totalCount"
-
-    ).innerText =
-
-        total;
-
-
-
-    const percentage =
-
-        total === 0
-
-            ? 0
-
-            :
-
-            Math.round(
-
-                (taken / total) * 100
-
-            );
-
-
-
-    document.getElementById(
-
-        "progressPercent"
-
-    ).innerText =
-
-        percentage + "%";
-
-
-
-    document.getElementById(
-
-        "progressFill"
-
-    ).style.width =
-
-        percentage + "%";
-
-}
-
-
-
-
-
-/* ========================================
-
-   ICON
-
-======================================== */
-
-
-
-function selectIcon(
-
-    button
-
-) {
-
-
-
-    document
-
-        .querySelectorAll(
-
-            ".icon-option"
-
-        )
-
-        .forEach(
-
-            item =>
-
-                item.classList.remove(
-
-                    "selected"
-
-                )
-
-        );
-
-
-
-    button.classList.add(
-
-        "selected"
-
-    );
-
-
-
-    selectedIcon =
-
-        button.dataset.icon;
-
-}
-
-
-
-
-
-/* ========================================
-
-   ADD SCHEDULE
-
-======================================== */
-
-
-
-function addSchedule() {
-
-
-
-    const container =
-
-        document.getElementById(
-
-            "scheduleContainer"
-
-        );
-
-
-
-    const div =
-
-        document.createElement(
-
-            "div"
-
-        );
-
-
-
-    div.className =
-
-        "schedule";
-
-
-
-    div.innerHTML = `
-
-        <div class="schedule-top">
-
-
-
-            <input
-
-                type="time"
-
-                class="schedule-time">
-
-
-
-            <input
-
-                type="number"
-
-                class="schedule-amount"
-
-                min="0.25"
-
-                step="0.25"
-
-                value="1">
-
-
-
-            <span class="unit">
-
-                шт.
-
-            </span>
-
-
-
-            <button
-
-                type="button"
-
-                class="remove-schedule"
-
-                onclick="
-
-                    this
-
-                        .closest(
-
-                            '.schedule'
-
-                        )
-
-                        .remove()
-
-                ">
-
-                ×
-
-            </button>
-
-
-
-        </div>
-
-
-
-        <select
-
-            class="schedule-food">
-
-
-
-            <option value="any">
-
-                Не зависит от еды
-
-            </option>
-
-
-
-            <option value="before">
-
-                До еды
-
-            </option>
-
-
-
-            <option value="during">
-
-                Во время еды
-
-            </option>
-
-
-
-            <option value="after">
-
-                После еды
-
-            </option>
-
-
-
-        </select>
-
-    `;
-
-
-
-    container.appendChild(
-
-        div
-
-    );
-
-}
-
-
-
-
-
-/* ========================================
-
-   ADD MEDICINE
-
-======================================== */
-
-
-
-function addMedicine() {
-
-
-
-    const name =
-
-        document
-
-            .getElementById(
-
-                "medicineName"
-
-            )
-
-            .value
-
-            .trim();
-
-
-
-    const strength =
-
-        document
-
-            .getElementById(
-
-                "medicineStrength"
-
-            )
-
-            .value
-
-            .trim();
-
-
-
-    const note =
-
-        document
-
-            .getElementById(
-
-                "medicineNote"
-
-            )
-
-            .value
-
-            .trim();
-
-
-
-    if (
-
-        !name
-
-    ) {
-
-        alert(
-
-            "Введите название лекарства"
-
-        );
-
+async function signOut() {
+    if (!currentUser) return;
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+        console.error(error);
         return;
-
     }
+    currentUser = null;
+    medicines = [];
+    history = [];
+    setAppVisible(false);
+    document.getElementById("authEmail").value = "";
+    document.getElementById("authPassword").value = "";
+    authMessage("");
+}
 
+/* ========================================
+   CLOUD DATA
+   ======================================== */
 
+async function loadCloudData() {
+    if (!currentUser) return;
 
-    const timeInputs =
+    const [medResult, scheduleResult, historyResult] = await Promise.all([
+        supabaseClient
+            .from("medicines")
+            .select("id,name,dosage,icon,notes,created_at")
+            .eq("user_id", currentUser.id)
+            .order("created_at", { ascending:true }),
+        supabaseClient
+            .from("schedules")
+            .select("id,medicine_id,time,quantity,food_timing,created_at")
+            .eq("user_id", currentUser.id)
+            .order("time", { ascending:true }),
+        supabaseClient
+            .from("medication_history")
+            .select("id,medicine_id,schedule_id,taken_at,created_at")
+            .eq("user_id", currentUser.id)
+            .order("taken_at", { ascending:false })
+    ]);
 
-        document.querySelectorAll(
+    if (medResult.error) throw medResult.error;
+    if (scheduleResult.error) throw scheduleResult.error;
+    if (historyResult.error) throw historyResult.error;
 
-            ".schedule-time"
+    medicines = medResult.data.map(m => ({
+        id:m.id,
+        name:m.name || "Лекарство",
+        strength:m.dosage || "",
+        icon:m.icon || "💊",
+        note:m.notes || "",
+        schedules:[]
+    }));
 
-        );
-
-
-
-    const amountInputs =
-
-        document.querySelectorAll(
-
-            ".schedule-amount"
-
-        );
-
-
-
-    const foodInputs =
-
-        document.querySelectorAll(
-
-            ".schedule-food"
-
-        );
-
-
-
-    const schedules = [];
-
-
-
-    for (
-
-        let i = 0;
-
-        i < timeInputs.length;
-
-        i++
-
-    ) {
-
-
-
-        if (
-
-            !timeInputs[i].value
-
-        ) {
-
-            alert(
-
-                "Укажите время каждого приёма"
-
-            );
-
-            return;
-
-        }
-
-
-
-        schedules.push({
-
-            id:
-
-                Date.now()
-
-                .toString()
-
-                +
-
-                "-"
-
-                +
-
-                i,
-
-            time:
-
-                timeInputs[i].value,
-
-            amount:
-
-                amountInputs[i].value,
-
-            food:
-
-                foodInputs[i].value
-
+    const medicineMap = new Map(medicines.map(m => [m.id,m]));
+    scheduleResult.data.forEach(s => {
+        const medicine = medicineMap.get(s.medicine_id);
+        if (!medicine) return;
+        medicine.schedules.push({
+            id:s.id,
+            time:s.time,
+            amount:String(s.quantity ?? 1),
+            food:s.food_timing || "any"
         });
-
-    }
-
-
-
-    medicines.push({
-
-        id:
-
-            Date.now()
-
-            .toString(),
-
-        name,
-
-        strength,
-
-        icon:
-
-            selectedIcon,
-
-        note,
-
-        schedules
-
     });
 
+    history = historyResult.data.map(h => {
+        const d = new Date(h.taken_at);
+        return {
+            id:h.id,
+            medicineId:h.medicine_id,
+            scheduleId:h.schedule_id,
+            date:dateKey(d),
+            time:d.toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"})
+        };
+    });
 
-
-    saveData();
-
-
-
-    closeModal();
-
-
-
-    renderMedicines();
-
+    // Preserve the data from the old local version on the first device.
+    await migrateLocalDataIfNeeded();
 }
 
+async function migrateLocalDataIfNeeded() {
+    const localMedicines = JSON.parse(localStorage.getItem("medicines") || "[]");
+    const localHistory = JSON.parse(localStorage.getItem("history") || "[]");
 
+    if (!currentUser || medicines.length > 0 || localMedicines.length === 0) return;
 
+    const idMap = new Map();
 
+    for (const oldMedicine of localMedicines) {
+        const newMedicineId = crypto.randomUUID();
+        const { error: medError } = await supabaseClient.from("medicines").insert({
+            id:newMedicineId,
+            user_id:currentUser.id,
+            name:oldMedicine.name || "Лекарство",
+            dosage:oldMedicine.strength || oldMedicine.dose || "",
+            icon:oldMedicine.icon || "💊",
+            notes:oldMedicine.note || ""
+        });
+        if (medError) throw medError;
+        idMap.set(oldMedicine.id, { medicineId:newMedicineId, schedules:new Map() });
+
+        for (const oldSchedule of (oldMedicine.schedules || [])) {
+            const newScheduleId = crypto.randomUUID();
+            const { error: scheduleError } = await supabaseClient.from("schedules").insert({
+                id:newScheduleId,
+                medicine_id:newMedicineId,
+                user_id:currentUser.id,
+                time:oldSchedule.time || "08:00",
+                quantity:Number(oldSchedule.amount || 1),
+                food_timing:oldSchedule.food || "any"
+            });
+            if (scheduleError) throw scheduleError;
+            idMap.get(oldMedicine.id).schedules.set(oldSchedule.id, newScheduleId);
+        }
+    }
+
+    for (const oldEntry of localHistory) {
+        const mapped = idMap.get(oldEntry.medicineId);
+        const newScheduleId = mapped?.schedules.get(oldEntry.scheduleId);
+        if (!mapped || !newScheduleId) continue;
+
+        const { error } = await supabaseClient.from("medication_history").insert({
+            id:crypto.randomUUID(),
+            medicine_id:mapped.medicineId,
+            schedule_id:newScheduleId,
+            user_id:currentUser.id,
+            taken_at:localDateTimeFromHistory(oldEntry)
+        });
+        if (error) throw error;
+    }
+
+    localStorage.removeItem("medicines");
+    localStorage.removeItem("history");
+
+    // Reload from the source of truth after migration.
+    const { data: meds } = await supabaseClient.from("medicines").select("id,name,dosage,icon,notes,created_at").eq("user_id", currentUser.id).order("created_at", {ascending:true});
+    const { data: schedules } = await supabaseClient.from("schedules").select("id,medicine_id,time,quantity,food_timing,created_at").eq("user_id", currentUser.id).order("time", {ascending:true});
+    const { data: histories } = await supabaseClient.from("medication_history").select("id,medicine_id,schedule_id,taken_at,created_at").eq("user_id", currentUser.id).order("taken_at", {ascending:false});
+
+    medicines = (meds || []).map(m => ({id:m.id,name:m.name,strength:m.dosage||"",icon:m.icon||"💊",note:m.notes||"",schedules:[]}));
+    const map = new Map(medicines.map(m=>[m.id,m]));
+    (schedules || []).forEach(s=>map.get(s.medicine_id)?.schedules.push({id:s.id,time:s.time,amount:String(s.quantity??1),food:s.food_timing||"any"}));
+    history = (histories || []).map(h=>{const d=new Date(h.taken_at); return {id:h.id,medicineId:h.medicine_id,scheduleId:h.schedule_id,date:dateKey(d),time:d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})};});
+}
 
 /* ========================================
-
-   MODAL
-
-======================================== */
-
-
-
-function openModal() {
-
-    document
-
-        .getElementById(
-
-            "modal"
-
-        )
-
-        .classList.add(
-
-            "active"
-
-        );
-
-}
-
-
-
-
-
-function closeModal() {
-
-    document
-
-        .getElementById(
-
-            "modal"
-
-        )
-
-        .classList.remove(
-
-            "active"
-
-        );
-
-
-
-    document.getElementById(
-
-        "medicineName"
-
-    ).value = "";
-
-
-
-    document.getElementById(
-
-        "medicineStrength"
-
-    ).value = "";
-
-
-
-    document.getElementById(
-
-        "medicineNote"
-
-    ).value = "";
-
-
-
-    document.getElementById(
-
-        "scheduleContainer"
-
-    ).innerHTML = `
-
-        <div class="schedule">
-
-
-
-            <div class="schedule-top">
-
-
-
-                <input
-
-                    type="time"
-
-                    class="schedule-time">
-
-
-
-                <input
-
-                    type="number"
-
-                    class="schedule-amount"
-
-                    min="0.25"
-
-                    step="0.25"
-
-                    value="1">
-
-
-
-                <span class="unit">
-
-                    шт.
-
-                </span>
-
-
-
+   RENDER MEDICINES
+   ======================================== */
+
+function renderMedicines() {
+    const list = document.getElementById("medicineList");
+    list.innerHTML = "";
+    let schedules = [];
+
+    medicines.forEach(medicine => {
+        if (!Array.isArray(medicine.schedules)) return;
+        medicine.schedules.forEach(schedule => schedules.push({medicine,schedule}));
+    });
+
+    schedules.sort((a,b)=>a.schedule.time.localeCompare(b.schedule.time));
+
+    if (schedules.length === 0) {
+        list.innerHTML = `<div class="empty">Пока нет лекарств.<br>Добавь первое лекарство ниже.</div>`;
+        updateProgress();
+        return;
+    }
+
+    schedules.forEach(({medicine,schedule}) => {
+        const taken = history.some(entry => entry.date===getToday() && entry.medicineId===medicine.id && entry.scheduleId===schedule.id);
+        const card = document.createElement("div");
+        card.className = "medicine-card" + (taken ? " completed" : "");
+        card.innerHTML = `
+            <div class="medicine-icon">${escapeHtml(medicine.icon || "💊")}</div>
+            <div class="medicine-info">
+                <div class="medicine-time">${escapeHtml(schedule.time)}</div>
+                <div class="medicine-name">${escapeHtml(medicine.name)}</div>
+                <div class="medicine-dose">${escapeHtml(medicine.strength || "")}${medicine.strength ? " · " : ""}${escapeHtml(schedule.amount)} шт.</div>
+                <div class="medicine-food">🍴 ${escapeHtml(foodText(schedule.food))}</div>
             </div>
-
-
-
-            <select
-
-                class="schedule-food">
-
-
-
-                <option value="any">
-
-                    Не зависит от еды
-
-                </option>
-
-
-
-                <option value="before">
-
-                    До еды
-
-                </option>
-
-
-
-                <option value="during">
-
-                    Во время еды
-
-                </option>
-
-
-
-                <option value="after">
-
-                    После еды
-
-                </option>
-
-
-
-            </select>
-
-
-
-        </div>
-
-    `;
-
-
-
-    selectedIcon =
-
-        "💊";
-
-
-
-    document
-
-        .querySelectorAll(
-
-            ".icon-option"
-
-        )
-
-        .forEach(
-
-            (item, index) => {
-
-                item.classList.toggle(
-
-                    "selected",
-
-                    index === 0
-
-                );
-
-            }
-
-        );
-
+            <button type="button" class="take-button ${taken ? "completed-button" : ""}">
+                ${taken ? "✓" : "Принять"}
+            </button>`;
+        card.querySelector(".take-button").addEventListener("click",()=>takeMedicine(medicine.id,schedule.id));
+        list.appendChild(card);
+    });
+    updateProgress();
 }
-
-
-
-
 
 /* ========================================
+   TAKE / UNTAKE
+   ======================================== */
 
+async function takeMedicine(medicineId,scheduleId) {
+    if (!currentUser) return;
+    const existing = history.find(entry => entry.date===getToday() && entry.medicineId===medicineId && entry.scheduleId===scheduleId);
+
+    try {
+        if (existing) {
+            const { error } = await supabaseClient.from("medication_history").delete().eq("id", existing.id).eq("user_id",currentUser.id);
+            if (error) throw error;
+            history = history.filter(entry => entry.id !== existing.id);
+        } else {
+            const takenAt = new Date().toISOString();
+            const newId = crypto.randomUUID();
+            const { error } = await supabaseClient.from("medication_history").insert({
+                id:newId, medicine_id:medicineId, schedule_id:scheduleId, user_id:currentUser.id, taken_at:takenAt
+            });
+            if (error) throw error;
+            const d = new Date(takenAt);
+            history.unshift({id:newId,medicineId,scheduleId,date:dateKey(d),time:d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})});
+        }
+        renderMedicines();
+        renderHistory();
+        if (document.getElementById("statisticsScreen").style.display !== "none") renderStatistics();
+    } catch (error) {
+        console.error(error);
+        alert("Не удалось сохранить приём. Проверь интернет-соединение.");
+    }
+}
+
+/* ========================================
+   PROGRESS
+   ======================================== */
+
+function updateProgress() {
+    let total=0, taken=0;
+    medicines.forEach(medicine=>{
+        if (!Array.isArray(medicine.schedules)) return;
+        medicine.schedules.forEach(schedule=>{
+            total++;
+            if (history.some(entry=>entry.date===getToday() && entry.medicineId===medicine.id && entry.scheduleId===schedule.id)) taken++;
+        });
+    });
+    document.getElementById("takenCount").innerText=taken;
+    document.getElementById("totalCount").innerText=total;
+    const percentage=total===0?0:Math.round(taken/total*100);
+    document.getElementById("progressPercent").innerText=percentage+"%";
+    document.getElementById("progressFill").style.width=percentage+"%";
+}
+
+/* ========================================
+   ICON / SCHEDULE / MODAL
+   ======================================== */
+
+function selectIcon(button) {
+    document.querySelectorAll(".icon-option").forEach(item=>item.classList.remove("selected"));
+    button.classList.add("selected");
+    selectedIcon=button.dataset.icon;
+}
+
+function addSchedule() {
+    const container=document.getElementById("scheduleContainer");
+    const div=document.createElement("div");
+    div.className="schedule";
+    div.innerHTML=`
+        <div class="schedule-top">
+            <input type="time" class="schedule-time">
+            <input type="number" class="schedule-amount" min="0.25" step="0.25" value="1">
+            <span class="unit">шт.</span>
+            <button type="button" class="remove-schedule">×</button>
+        </div>
+        <select class="schedule-food">
+            <option value="any">Не зависит от еды</option>
+            <option value="before">До еды</option>
+            <option value="during">Во время еды</option>
+            <option value="after">После еды</option>
+        </select>`;
+    div.querySelector(".remove-schedule").onclick=()=>div.remove();
+    container.appendChild(div);
+}
+
+async function addMedicine() {
+    if (!currentUser) return;
+    const name=document.getElementById("medicineName").value.trim();
+    const strength=document.getElementById("medicineStrength").value.trim();
+    const note=document.getElementById("medicineNote").value.trim();
+    if (!name) { alert("Введите название лекарства"); return; }
+
+    const timeInputs=document.querySelectorAll(".schedule-time");
+    const amountInputs=document.querySelectorAll(".schedule-amount");
+    const foodInputs=document.querySelectorAll(".schedule-food");
+    const schedules=[];
+    for(let i=0;i<timeInputs.length;i++) {
+        if(!timeInputs[i].value) { alert("Укажите время каждого приёма"); return; }
+        schedules.push({id:crypto.randomUUID(),time:timeInputs[i].value,amount:amountInputs[i].value,food:foodInputs[i].value});
+    }
+
+    try {
+        const medicineId=crypto.randomUUID();
+        const { error: medError } = await supabaseClient.from("medicines").insert({
+            id:medicineId,user_id:currentUser.id,name,dosage:strength,icon:selectedIcon,notes:note
+        });
+        if (medError) throw medError;
+
+        const rows=schedules.map(s=>({id:s.id,medicine_id:medicineId,user_id:currentUser.id,time:s.time,quantity:Number(s.amount),food_timing:s.food}));
+        const { error:scheduleError }=await supabaseClient.from("schedules").insert(rows);
+        if(scheduleError) throw scheduleError;
+
+        medicines.push({id:medicineId,name,strength,icon:selectedIcon,note,schedules});
+        closeModal();
+        renderMedicines();
+    } catch(error) {
+        console.error(error);
+        alert("Не удалось добавить лекарство. Проверь интернет-соединение.");
+    }
+}
+
+function resetModal() {
+    document.getElementById("medicineName").value="";
+    document.getElementById("medicineStrength").value="";
+    document.getElementById("medicineNote").value="";
+    document.getElementById("scheduleContainer").innerHTML=`
+        <div class="schedule">
+            <div class="schedule-top">
+                <input type="time" class="schedule-time">
+                <input type="number" class="schedule-amount" min="0.25" step="0.25" value="1">
+                <span class="unit">шт.</span>
+            </div>
+            <select class="schedule-food">
+                <option value="any">Не зависит от еды</option>
+                <option value="before">До еды</option>
+                <option value="during">Во время еды</option>
+                <option value="after">После еды</option>
+            </select>
+        </div>`;
+    selectedIcon="💊";
+    document.querySelectorAll(".icon-option").forEach((item,index)=>item.classList.toggle("selected",index===0));
+}
+
+function openModal(){ document.getElementById("modal").classList.add("active"); }
+function closeModal(){ document.getElementById("modal").classList.remove("active"); resetModal(); }
+
+/* ========================================
    NAVIGATION
+   ======================================== */
 
-======================================== */
-
-
-
-function hideScreens() {
-
-    document.getElementById("medicineList").style.display = "none";
-    document.getElementById("historyScreen").style.display = "none";
-    document.getElementById("statisticsScreen").style.display = "none";
-    document.getElementById("progressCard").style.display = "none";
-    document.getElementById("addButton").style.display = "none";
-
+function hideScreens(){
+    document.getElementById("medicineList").style.display="none";
+    document.getElementById("historyScreen").style.display="none";
+    document.getElementById("statisticsScreen").style.display="none";
+    document.getElementById("progressCard").style.display="none";
+    document.getElementById("addButton").style.display="none";
 }
-
-function showToday() {
-
+function showToday(){
     hideScreens();
-    document.getElementById("medicineList").style.display = "block";
-    document.getElementById("progressCard").style.display = "block";
-    document.getElementById("addButton").style.display = "block";
+    document.getElementById("medicineList").style.display="block";
+    document.getElementById("progressCard").style.display="block";
+    document.getElementById("addButton").style.display="block";
     setActiveNav(0);
-
 }
-
-function showHistory() {
-
+function showHistory(){
     hideScreens();
-    document.getElementById("historyScreen").style.display = "block";
+    document.getElementById("historyScreen").style.display="block";
     setActiveNav(2);
-    showHistoryPeriod("today", document.querySelector(".history-tab"));
-
+    showHistoryPeriod("today",document.querySelector(".history-tab"));
 }
-
-function showStatistics() {
-
+function showStatistics(){
     hideScreens();
-    document.getElementById("statisticsScreen").style.display = "block";
+    document.getElementById("statisticsScreen").style.display="block";
     setActiveNav(1);
     renderStatistics();
-
+}
+function setActiveNav(index){
+    document.querySelectorAll(".nav-button").forEach((button,i)=>button.classList.toggle("active",i===index));
 }
 
 /* ========================================
    STATISTICS
-======================================== */
+   ======================================== */
 
-function getStatsForPeriod(days) {
-    let planned = 0;
-    let taken = 0;
-
-    for (let offset = 0; offset < days; offset++) {
-        const dateString = dateKey(dateFromOffset(offset));
-        medicines.forEach(medicine => {
-            if (!Array.isArray(medicine.schedules)) return;
-            medicine.schedules.forEach(schedule => {
+function getStatsForPeriod(days){
+    let planned=0,taken=0;
+    for(let offset=0;offset<days;offset++){
+        const dateString=dateKey(dateFromOffset(offset));
+        medicines.forEach(medicine=>{
+            if(!Array.isArray(medicine.schedules))return;
+            medicine.schedules.forEach(schedule=>{
                 planned++;
-                if (history.some(entry =>
-                    entry.date === dateString &&
-                    entry.medicineId === medicine.id &&
-                    entry.scheduleId === schedule.id
-                )) taken++;
+                if(history.some(entry=>entry.date===dateString&&entry.medicineId===medicine.id&&entry.scheduleId===schedule.id))taken++;
             });
         });
     }
-
-    return {
-        planned,
-        taken,
-        missed: planned - taken,
-        percent: planned === 0 ? 0 : Math.round((taken / planned) * 100)
-    };
+    return {planned,taken,missed:planned-taken,percent:planned===0?0:Math.round(taken/planned*100)};
 }
-
-function renderStatistics() {
-    const today = getStatsForPeriod(1);
-    const week = getStatsForPeriod(7);
-    const month = getStatsForPeriod(30);
-
-    document.getElementById("statsTodayPercent").innerText = today.percent + "%";
-    document.getElementById("statsTodayDetail").innerText = today.taken + " из " + today.planned + " принято";
-    document.getElementById("statsWeekPercent").innerText = week.percent + "%";
-    document.getElementById("statsWeekDetail").innerText = week.taken + " из " + week.planned + " принято";
-    document.getElementById("statsMonthPercent").innerText = month.percent + "%";
-    document.getElementById("statsMonthDetail").innerText = month.taken + " из " + month.planned + " принято";
-    document.getElementById("statsTakenTotal").innerText = month.taken;
-    document.getElementById("statsMissedTotal").innerText = month.missed + " пропущено";
-
-    const list = document.getElementById("medicineStatsList");
-    list.innerHTML = "";
-
-    medicines.forEach(medicine => {
-        if (!Array.isArray(medicine.schedules) || medicine.schedules.length === 0) return;
-
-        let planned = 0;
-        let taken = 0;
-
-        for (let offset = 0; offset < 30; offset++) {
-            const dateString = dateKey(dateFromOffset(offset));
-            medicine.schedules.forEach(schedule => {
+function renderStatistics(){
+    const today=getStatsForPeriod(1),week=getStatsForPeriod(7),month=getStatsForPeriod(30);
+    document.getElementById("statsTodayPercent").innerText=today.percent+"%";
+    document.getElementById("statsTodayDetail").innerText=today.taken+" из "+today.planned+" принято";
+    document.getElementById("statsWeekPercent").innerText=week.percent+"%";
+    document.getElementById("statsWeekDetail").innerText=week.taken+" из "+week.planned+" принято";
+    document.getElementById("statsMonthPercent").innerText=month.percent+"%";
+    document.getElementById("statsMonthDetail").innerText=month.taken+" из "+month.planned+" принято";
+    document.getElementById("statsTakenTotal").innerText=month.taken;
+    document.getElementById("statsMissedTotal").innerText=month.missed+" пропущено";
+    const list=document.getElementById("medicineStatsList"); list.innerHTML="";
+    medicines.forEach(medicine=>{
+        if(!Array.isArray(medicine.schedules)||medicine.schedules.length===0)return;
+        let planned=0,taken=0;
+        for(let offset=0;offset<30;offset++){
+            const dateString=dateKey(dateFromOffset(offset));
+            medicine.schedules.forEach(schedule=>{
                 planned++;
-                if (history.some(entry =>
-                    entry.date === dateString &&
-                    entry.medicineId === medicine.id &&
-                    entry.scheduleId === schedule.id
-                )) taken++;
+                if(history.some(entry=>entry.date===dateString&&entry.medicineId===medicine.id&&entry.scheduleId===schedule.id))taken++;
             });
         }
-
-        const percent = planned === 0 ? 0 : Math.round((taken / planned) * 100);
-        const item = document.createElement("div");
-        item.className = "medicine-stat";
-        item.innerHTML = `
-            <div class="medicine-stat-icon">${medicine.icon || "💊"}</div>
-            <div class="medicine-stat-info">
-                <div class="medicine-stat-name">${medicine.name}</div>
-                <div class="medicine-stat-detail">${taken} из ${planned} приёмов за 30 дней</div>
-                <div class="stat-progress"><div class="stat-progress-fill" style="width:${percent}%"></div></div>
-            </div>
-            <div class="medicine-stat-percent">${percent}%</div>
-        `;
+        const percent=planned===0?0:Math.round(taken/planned*100);
+        const item=document.createElement("div"); item.className="medicine-stat";
+        item.innerHTML=`<div class="medicine-stat-icon">${escapeHtml(medicine.icon||"💊")}</div><div class="medicine-stat-info"><div class="medicine-stat-name">${escapeHtml(medicine.name)}</div><div class="medicine-stat-detail">${taken} из ${planned} приёмов за 30 дней</div><div class="stat-progress"><div class="stat-progress-fill" style="width:${percent}%"></div></div></div><div class="medicine-stat-percent">${percent}%</div>`;
         list.appendChild(item);
     });
-
-    if (medicines.length === 0) {
-        list.innerHTML = '<div class="history-empty">Пока нет лекарств.</div>';
-    }
+    if(medicines.length===0)list.innerHTML='<div class="history-empty">Пока нет лекарств.</div>';
 }
 
-
 /* ========================================
-
-   ACTIVE NAV
-
-======================================== */
-
-
-
-function setActiveNav(
-
-    index
-
-) {
-
-
-
-    const buttons =
-
-        document.querySelectorAll(
-
-            ".nav-button"
-
-        );
-
-
-
-    buttons.forEach(
-
-        button =>
-
-            button.classList.remove(
-
-                "active"
-
-            )
-
-    );
-
-
-
-    if (
-
-        buttons[index]
-
-    ) {
-
-        buttons[index]
-
-            .classList.add(
-
-                "active"
-
-            );
-
-    }
-
-}
-
-
-
-
-
-/* ========================================
-
-   HISTORY PERIOD
-
-======================================== */
-
-
-
-let currentHistoryPeriod =
-
-    "today";
-
-
-
-
-
-function showHistoryPeriod(
-
-    period,
-
-    button
-
-) {
-
-
-
-    currentHistoryPeriod =
-
-        period;
-
-
-
-    document
-
-        .querySelectorAll(
-
-            ".history-tab"
-
-        )
-
-        .forEach(
-
-            tab =>
-
-                tab.classList.remove(
-
-                    "active"
-
-                )
-
-        );
-
-
-
-    if (
-
-        button
-
-    ) {
-
-        button.classList.add(
-
-            "active"
-
-        );
-
-    }
-
-
-
+   HISTORY
+   ======================================== */
+
+function showHistoryPeriod(period,button){
+    currentHistoryPeriod=period;
+    document.querySelectorAll(".history-tab").forEach(tab=>tab.classList.remove("active"));
+    if(button)button.classList.add("active");
     renderHistory();
-
 }
 
-
-
-
+function renderHistory(){
+    const list=document.getElementById("historyList"); list.innerHTML="";
+    const days=currentHistoryPeriod==="today"?1:currentHistoryPeriod==="week"?7:30;
+    let foundAnything=false;
+    for(let offset=0;offset<days;offset++){
+        const date=dateFromOffset(offset),dateString=dateKey(date),dayItems=[];
+        medicines.forEach(medicine=>{
+            if(!Array.isArray(medicine.schedules))return;
+            medicine.schedules.forEach(schedule=>{
+                const historyEntry=history.find(entry=>entry.date===dateString&&entry.medicineId===medicine.id&&entry.scheduleId===schedule.id);
+                dayItems.push({medicine,schedule,historyEntry});
+            });
+        });
+        if(dayItems.length===0)continue;
+        foundAnything=true;
+        dayItems.sort((a,b)=>a.schedule.time.localeCompare(b.schedule.time));
+        const dayBlock=document.createElement("div"); dayBlock.className="history-day";
+        dayBlock.innerHTML=`<div class="history-day-title">${escapeHtml(formatHistoryDate(date))}</div>`;
+        dayItems.forEach(item=>{
+            const {medicine,schedule,historyEntry}=item,taken=!!historyEntry;
+            const historyItem=document.createElement("div"); historyItem.className="history-item";
+            const actualTime=taken?"Принято в "+historyEntry.time:"Не принято";
+            historyItem.innerHTML=`<div class="history-icon">${escapeHtml(medicine.icon||"💊")}</div><div class="history-info"><div class="history-time">${escapeHtml(schedule.time)} · ${escapeHtml(actualTime)}</div><div class="history-name">${escapeHtml(medicine.name)}</div><div class="history-dose">${escapeHtml(medicine.strength||"")}${medicine.strength?" · ":""}${escapeHtml(schedule.amount)} шт.</div></div><div class="history-status ${taken?"taken":"missed"}">${taken?"✓":"○"}</div>`;
+            dayBlock.appendChild(historyItem);
+        });
+        list.appendChild(dayBlock);
+    }
+    if(!foundAnything)list.innerHTML='<div class="history-empty">Здесь пока нет истории приёмов.</div>';
+}
 
 /* ========================================
-
-   DATE OFFSET
-
-======================================== */
-
-
-
-function dateFromOffset(
-
-    daysAgo
-
-) {
-
-
-
-    const date =
-
-        new Date();
-
-
-
-    date.setHours(
-
-        0,
-
-        0,
-
-        0,
-
-        0
-
-    );
-
-
-
-    date.setDate(
-
-        date.getDate()
-
-        -
-
-        daysAgo
-
-    );
-
-
-
-    return date;
-
-}
-
-
-
-
-
-function dateKey(
-
-    date
-
-) {
-
-
-
-    const year =
-
-        date.getFullYear();
-
-
-
-    const month =
-
-        String(
-
-            date.getMonth() + 1
-
-        )
-
-        .padStart(
-
-            2,
-
-            "0"
-
-        );
-
-
-
-    const day =
-
-        String(
-
-            date.getDate()
-
-        )
-
-        .padStart(
-
-            2,
-
-            "0"
-
-        );
-
-
-
-    return (
-
-        year
-
-        +
-
-        "-"
-
-        +
-
-        month
-
-        +
-
-        "-"
-
-        +
-
-        day
-
-    );
-
-}
-
-
-
-
-
-/* ========================================
-
-   HISTORY DATE
-
-======================================== */
-
-
-
-function formatHistoryDate(
-
-    date
-
-) {
-
-
-
-    const today =
-
-        new Date();
-
-
-
-    const yesterday =
-
-        dateFromOffset(1);
-
-
-
-    if (
-
-        dateKey(date)
-
-        ===
-
-        dateKey(today)
-
-    ) {
-
-        return "Сегодня";
-
-    }
-
-
-
-    if (
-
-        dateKey(date)
-
-        ===
-
-        dateKey(yesterday)
-
-    ) {
-
-        return "Вчера";
-
-    }
-
-
-
-    return date.toLocaleDateString(
-
-        "ru-RU",
-
-        {
-
-            weekday:
-
-                "long",
-
-            day:
-
-                "numeric",
-
-            month:
-
-                "long"
-
-        }
-
-    );
-
-}
-
-
-
-
-
-/* ========================================
-
-   RENDER HISTORY
-
-======================================== */
-
-
-
-function renderHistory() {
-
-
-
-    const list =
-
-        document.getElementById(
-
-            "historyList"
-
-        );
-
-
-
-    list.innerHTML = "";
-
-
-
-    let days;
-
-
-
-    if (
-
-        currentHistoryPeriod
-
-        ===
-
-        "today"
-
-    ) {
-
-        days = 1;
-
-    }
-
-    else if (
-
-        currentHistoryPeriod
-
-        ===
-
-        "week"
-
-    ) {
-
-        days = 7;
-
-    }
-
-    else {
-
-        days = 30;
-
-    }
-
-
-
-    let foundAnything =
-
-        false;
-
-
-
-    for (
-
-        let offset = 0;
-
-        offset < days;
-
-        offset++
-
-    ) {
-
-
-
-        const date =
-
-            dateFromOffset(
-
-                offset
-
-            );
-
-
-
-        const dateString =
-
-            dateKey(
-
-                date
-
-            );
-
-
-
-        let dayItems = [];
-
-
-
-        medicines.forEach(
-
-            medicine => {
-
-
-
-                if (
-
-                    !Array.isArray(
-
-                        medicine.schedules
-
-                    )
-
-                ) {
-
-                    return;
-
-                }
-
-
-
-                medicine.schedules.forEach(
-
-                    schedule => {
-
-
-
-                        const historyEntry =
-
-                            history.find(
-
-                                entry =>
-
-                                    entry.date
-
-                                    ===
-
-                                    dateString
-
-                                    &&
-
-                                    entry.medicineId
-
-                                    ===
-
-                                    medicine.id
-
-                                    &&
-
-                                    entry.scheduleId
-
-                                    ===
-
-                                    schedule.id
-
-                            );
-
-
-
-                        dayItems.push({
-
-                            medicine,
-
-                            schedule,
-
-                            historyEntry
-
-                        });
-
-                    }
-
-                );
-
-            }
-
-        );
-
-
-
-        if (
-
-            dayItems.length === 0
-
-        ) {
-
-            continue;
-
-        }
-
-
-
-        foundAnything =
-
-            true;
-
-
-
-        dayItems.sort(
-
-            (a, b) =>
-
-                a.schedule.time.localeCompare(
-
-                    b.schedule.time
-
-                )
-
-        );
-
-
-
-        const dayBlock =
-
-            document.createElement(
-
-                "div"
-
-            );
-
-
-
-        dayBlock.className =
-
-            "history-day";
-
-
-
-        dayBlock.innerHTML = `
-
-            <div class="history-day-title">
-
-                ${formatHistoryDate(
-
-                    date
-
-                )}
-
-            </div>
-
-        `;
-
-
-
-        dayItems.forEach(
-
-            item => {
-
-
-
-                const medicine =
-
-                    item.medicine;
-
-
-
-                const schedule =
-
-                    item.schedule;
-
-
-
-                const taken =
-
-                    !!item.historyEntry;
-
-
-
-                const historyItem =
-
-                    document.createElement(
-
-                        "div"
-
-                    );
-
-
-
-                historyItem.className =
-
-                    "history-item";
-
-
-
-                let actualTime;
-
-
-
-                if (
-
-                    taken
-
-                ) {
-
-                    actualTime =
-
-                        "Принято в "
-
-                        +
-
-                        item.historyEntry.time;
-
-                }
-
-                else {
-
-                    actualTime =
-
-                        "Не принято";
-
-                }
-
-
-
-                historyItem.innerHTML = `
-
-                    <div class="history-icon">
-
-                        ${medicine.icon || "💊"}
-
-                    </div>
-
-
-
-                    <div class="history-info">
-
-
-
-                        <div class="history-time">
-
-                            ${schedule.time}
-
-                            ·
-
-                            ${actualTime}
-
-                        </div>
-
-
-
-                        <div class="history-name">
-
-                            ${medicine.name}
-
-                        </div>
-
-
-
-                        <div class="history-dose">
-
-                            ${medicine.strength || ""}
-
-                            ${
-
-                                medicine.strength
-
-                                    ? " · "
-
-                                    : ""
-
-                            }
-
-                            ${schedule.amount} шт.
-
-                        </div>
-
-
-
-                    </div>
-
-
-
-                    <div
-
-                        class="
-
-                            history-status
-
-                            ${
-
-                                taken
-
-                                    ? "taken"
-
-                                    : "missed"
-
-                            }
-
-                        "
-
-                    >
-
-                        ${
-
-                            taken
-
-                                ? "✓"
-
-                                : "○"
-
-                        }
-
-                    </div>
-
-                `;
-
-
-
-                dayBlock.appendChild(
-
-                    historyItem
-
-                );
-
-            }
-
-        );
-
-
-
-        list.appendChild(
-
-            dayBlock
-
-        );
-
-    }
-
-
-
-    if (
-
-        !foundAnything
-
-    ) {
-
-
-
-        list.innerHTML = `
-
-            <div class="history-empty">
-
-                Здесь пока нет истории приёмов.
-
-            </div>
-
-        `;
-
-    }
-
-}
-
-
-
-
-
-/* ========================================
-
    START
+   ======================================== */
 
-======================================== */
+async function startApp(){
+    showDate();
+    try {
+        const { data, error } = await supabaseClient.auth.getSession();
+        if(error) throw error;
+        if(data.session){
+            await finishLogin(data.session);
+        } else {
+            setAppVisible(false);
+        }
+    } catch(error){
+        console.error(error);
+        setAppVisible(false);
+        authMessage("Не удалось подключиться к серверу. Проверь настройки Supabase.",true);
+    }
+}
 
+supabaseClient.auth.onAuthStateChange((event, session)=>{
+    if(event === "SIGNED_OUT"){
+        currentUser=null; medicines=[]; history=[]; setAppVisible(false);
+    }
+});
 
-
-showDate();
-
-renderMedicines();
-
-showToday();
-
+startApp();
 </script>
 
 

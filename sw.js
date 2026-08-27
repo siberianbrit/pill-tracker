@@ -1,4 +1,4 @@
-const CACHE = 'pill-tracker-v1';
+const CACHE = 'pill-tracker-v2';
 const ASSETS = [
   './',
   './index.html',

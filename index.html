@@ -1486,7 +1486,115 @@
         .auth-loading { opacity:.65; pointer-events:none; }
         .app-hidden, .nav-hidden { display:none !important; }
         .account-button { font-size: 18px; }
+/* ========================================
+   FINAL MOBILE LAYOUT FIX
+   ======================================== */
 
+html,
+body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    margin: 0;
+}
+
+.app {
+    display: block !important;
+    width: 100% !important;
+    max-width: 480px !important;
+    min-height: 100vh;
+    margin: 0 auto !important;
+    padding: 24px 20px 110px !important;
+}
+
+/* Все основные блоки идут строго вертикально */
+.top-bar,
+.header,
+.progress-card,
+#medicineList,
+#historyScreen,
+#statisticsScreen,
+#addButton {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Карточки лекарств */
+#medicineList {
+    display: block;
+    width: 100%;
+}
+
+.medicine-card {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Чтобы содержимое карточки не растягивало её */
+.medicine-info {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Кнопка добавления */
+.add-button {
+    width: 100%;
+    max-width: 100%;
+    display: block;
+}
+
+/* Progress */
+.progress-card {
+    display: block;
+}
+
+/* History */
+.history-screen {
+    width: 100%;
+    max-width: 100%;
+}
+
+.history-item {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Statistics */
+.statistics-screen {
+    width: 100%;
+    max-width: 100%;
+}
+
+.stats-grid {
+    width: 100%;
+}
+
+.stat-card {
+    min-width: 0;
+}
+
+/* Нижняя навигация */
+.bottom-nav {
+    width: 100%;
+    max-width: 480px;
+}
+
+/* Модальное окно */
+.modal-content {
+    width: 100%;
+    max-width: 480px;
+}
+
+/* Notification button */
+.notification-button {
+    flex-shrink: 0;
+}
     </style>
 
 </head>

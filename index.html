@@ -2345,6 +2345,191 @@ let history = [];
 let selectedIcon = "💊";
 let currentHistoryPeriod = "today";
 let authMode = "signin";
+    /* ========================================
+   PUSH NOTIFICATIONS
+   ======================================== */
+
+// ВАЖНО:
+// Это PUBLIC VAPID key.
+// Private VAPID key сюда НИКОГДА не добавляем.
+const VAPID_PUBLIC_KEY =
+    "BNlXGcawGe7XKuGmuLn7_9dNyx1RrFUUwRLUinu1YXU9a-gjO-h81TtfI1ZW1udFiGqnYCPyTlgANtkhIf_dg84";
+
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+
+    const base64 = (base64String + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    const rawData = window.atob(base64);
+
+    return Uint8Array.from(
+        [...rawData].map(char => char.charCodeAt(0))
+    );
+}
+
+
+async function enableNotifications() {
+    if (!currentUser) {
+        alert("Сначала войди в аккаунт.");
+        return;
+    }
+
+    if (!("Notification" in window)) {
+        alert("Этот браузер не поддерживает уведомления.");
+        return;
+    }
+
+    if (!("serviceWorker" in navigator)) {
+        alert("Этот браузер не поддерживает Service Worker.");
+        return;
+    }
+
+    const button = document.getElementById("notificationButton");
+
+    try {
+        button.disabled = true;
+        button.style.opacity = "0.5";
+
+        // Уже разрешено
+        let permission = Notification.permission;
+
+        if (permission !== "granted") {
+            permission = await Notification.requestPermission();
+        }
+
+        if (permission !== "granted") {
+            button.classList.add("denied");
+            button.disabled = false;
+            button.style.opacity = "";
+            alert(
+                "Уведомления отключены. Разреши их в настройках браузера для этого сайта."
+            );
+            return;
+        }
+
+        // Получаем Service Worker
+        const registration = await navigator.serviceWorker.ready;
+
+        // Получаем существующую подписку
+        let subscription =
+            await registration.pushManager.getSubscription();
+
+        // Если подписки нет — создаём
+        if (!subscription) {
+            subscription =
+                await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey:
+                        urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
+        }
+
+        const subscriptionJson = subscription.toJSON();
+
+        if (
+            !subscriptionJson.endpoint ||
+            !subscriptionJson.keys ||
+            !subscriptionJson.keys.p256dh ||
+            !subscriptionJson.keys.auth
+        ) {
+            throw new Error("Некорректная push subscription.");
+        }
+
+        // Сохраняем подписку в Supabase
+        const { error } = await supabaseClient
+            .from("push_subscriptions")
+            .upsert(
+                {
+                    user_id: currentUser.id,
+                    endpoint: subscriptionJson.endpoint,
+                    p256dh: subscriptionJson.keys.p256dh,
+                    auth: subscriptionJson.keys.auth
+                },
+                {
+                    onConflict: "user_id,endpoint"
+                }
+            );
+
+        if (error) {
+            throw error;
+        }
+
+        // UI
+        button.classList.remove("denied");
+        button.classList.add("enabled");
+        button.innerText = "🔔";
+        button.title = "Уведомления включены";
+
+        // Тестовое локальное уведомление
+        new Notification("Pill Tracker", {
+            body: "Уведомления включены ✓"
+        });
+
+        console.log("Push notifications enabled.");
+        console.log("Subscription saved:", subscriptionJson);
+
+    } catch (error) {
+        console.error("Notification setup error:", error);
+
+        alert(
+            "Не удалось включить уведомления.\n\n" +
+            (error.message || "Неизвестная ошибка")
+        );
+
+    } finally {
+        button.disabled = false;
+        button.style.opacity = "";
+    }
+}
+
+
+async function updateNotificationButton() {
+    const button = document.getElementById("notificationButton");
+
+    if (!button) return;
+
+    if (!("Notification" in window)) {
+        button.style.display = "none";
+        return;
+    }
+
+    if (Notification.permission === "denied") {
+        button.classList.add("denied");
+        button.title = "Уведомления заблокированы";
+        return;
+    }
+
+    if (Notification.permission !== "granted") {
+        button.classList.remove("enabled");
+        button.innerText = "🔔";
+        button.title = "Включить уведомления";
+        return;
+    }
+
+    try {
+        const registration =
+            await navigator.serviceWorker.ready;
+
+        const subscription =
+            await registration.pushManager.getSubscription();
+
+        if (subscription) {
+            button.classList.add("enabled");
+            button.classList.remove("denied");
+            button.innerText = "🔔";
+            button.title = "Уведомления включены";
+        }
+
+    } catch (error) {
+        console.error(
+            "Could not check notification subscription:",
+            error
+        );
+    }
+}
 
 /* ========================================
    HELPERS
@@ -2958,7 +3143,9 @@ supabaseClient.auth.onAuthStateChange((event, session)=>{
     }
 });
 
-startApp();
+startApp().then(() => {
+    updateNotificationButton();
+});
 </script>
 
 

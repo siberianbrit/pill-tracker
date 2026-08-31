@@ -203,7 +203,37 @@
             font-size: 19px;
 
         }
+.notification-button {
+    position: relative;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
 
+.notification-button:active {
+    transform: scale(0.9);
+}
+
+.notification-button.enabled {
+    color: var(--accent-dark);
+}
+
+.notification-button.denied {
+    opacity: 0.45;
+}
+
+.notification-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    background: #9b5f52;
+    border-radius: 50%;
+    display: none;
+}
+
+.notification-button.denied .notification-badge {
+    display: block;
+}
 
 
         /* ========================================

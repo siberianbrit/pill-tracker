@@ -1,0 +1,3861 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="theme-color" content="#f4f0e8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Pill Tracker">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icon-180.png">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+
+    <title>Pill Tracker</title>
+
+    <style>
+        :root {
+            --bg: #f4f0e8;
+            --card: #faf8f3;
+            --card-soft: #eee9df;
+            --text: #24231f;
+            --secondary: #89857b;
+            --border: #ded8cc;
+            --accent: #96937a;
+            --accent-dark: #77745f;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+            background: var(--bg);
+        }
+
+        body {
+            color: var(--text);
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "SF Pro Display",
+                "SF Pro Text",
+                "Segoe UI",
+                sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font-family: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            margin: 0 auto;
+            padding: 24px 20px calc(110px + env(safe-area-inset-bottom));
+        }
+
+        .app-hidden,
+        .nav-hidden {
+            display: none !important;
+        }
+
+        /* TOP BAR */
+
+        .top-bar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .menu-button,
+        .notification-button {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-button {
+            font-size: 22px;
+        }
+
+        .notification-button {
+            position: relative;
+            font-size: 20px;
+            transition: transform 0.15s ease, opacity 0.15s ease;
+        }
+
+        .notification-button:active {
+            transform: scale(0.9);
+        }
+
+        .notification-button.enabled {
+            color: var(--accent-dark);
+        }
+
+        .notification-button.denied {
+            opacity: 0.45;
+        }
+
+        .notification-button.unsupported {
+            opacity: 0.55;
+        }
+
+        /* HEADER */
+
+        .header {
+            width: 100%;
+            margin-bottom: 22px;
+        }
+
+        .date {
+            color: var(--secondary);
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 38px;
+            line-height: 1.05;
+            letter-spacing: -1.5px;
+        }
+
+        /* PROGRESS */
+
+        .progress-card {
+            width: 100%;
+            background: var(--card);
+            border-radius: 26px;
+            padding: 23px;
+            margin-bottom: 22px;
+            border: 1px solid rgba(0, 0, 0, 0.025);
+        }
+
+        .progress-label {
+            color: var(--secondary);
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .progress-number {
+            font-size: 30px;
+            font-weight: 650;
+            letter-spacing: -1px;
+        }
+
+        .progress-percent {
+            color: var(--secondary);
+            font-size: 15px;
+            margin-top: 3px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #dfdbd1;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--accent);
+            border-radius: 20px;
+            transition: width 0.35s ease;
+        }
+
+        /* MEDICINE CARDS */
+
+        #medicineList {
+            width: 100%;
+            display: block;
+        }
+
+        .medicine-card {
+            width: 100%;
+            background: var(--card);
+            border-radius: 24px;
+            padding: 17px;
+            margin: 0 0 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 1px solid rgba(0, 0, 0, 0.025);
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .medicine-card.completed {
+            opacity: 0.62;
+        }
+
+        .medicine-icon {
+            width: 58px;
+            height: 58px;
+            flex: 0 0 58px;
+            border-radius: 50%;
+            background: #ebe5d9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .medicine-info {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .medicine-time {
+            color: var(--secondary);
+            font-size: 13px;
+            margin-bottom: 3px;
+        }
+
+        .medicine-name {
+            font-size: 19px;
+            font-weight: 650;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .medicine-dose {
+            color: var(--secondary);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .medicine-food {
+            color: var(--secondary);
+            font-size: 13px;
+            margin-top: 5px;
+            line-height: 1.3;
+        }
+
+        /* TAKE BUTTON */
+
+        .take-button {
+            flex: 0 0 auto;
+            min-width: 82px;
+            padding: 10px 14px;
+            border-radius: 13px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .take-button.completed-button {
+            width: 40px;
+            min-width: 40px;
+            height: 40px;
+            padding: 0;
+            border: none;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            font-size: 18px;
+        }
+
+        /* ADD */
+
+        .add-button {
+            width: 100%;
+            display: block;
+            border: none;
+            background: var(--accent);
+            color: white;
+            border-radius: 18px;
+            padding: 15px;
+            margin-top: 8px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .add-button:active {
+            transform: scale(0.98);
+        }
+
+        .empty {
+            width: 100%;
+            text-align: center;
+            color: var(--secondary);
+            padding: 45px 20px;
+        }
+
+        /* BOTTOM NAV */
+
+        .bottom-nav {
+            position: fixed;
+            z-index: 50;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 480px;
+            padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
+            background: rgba(244, 240, 232, 0.94);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-top: 1px solid rgba(0, 0, 0, 0.04);
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .nav-button {
+            flex: 1 1 0;
+            max-width: 150px;
+            background: transparent;
+            border: none;
+            color: var(--secondary);
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+        }
+
+        .nav-button.active {
+            color: var(--text);
+        }
+
+        .nav-icon {
+            font-size: 20px;
+        }
+
+        /* HISTORY */
+
+        .history-screen {
+            display: none;
+            width: 100%;
+        }
+
+        .history-header {
+            margin-bottom: 22px;
+        }
+
+        .history-title {
+            font-size: 32px;
+            font-weight: 650;
+            letter-spacing: -1px;
+        }
+
+        .history-subtitle {
+            color: var(--secondary);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .history-tabs {
+            width: 100%;
+            display: flex;
+            background: #e9e4da;
+            padding: 4px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+        }
+
+        .history-tab {
+            flex: 1 1 0;
+            border: none;
+            background: transparent;
+            color: var(--secondary);
+            padding: 9px 5px;
+            border-radius: 11px;
+            font-size: 13px;
+            font-weight: 550;
+        }
+
+        .history-tab.active {
+            background: var(--card);
+            color: var(--text);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .history-day {
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+        .history-day-title {
+            color: var(--secondary);
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 9px;
+            padding-left: 4px;
+        }
+
+        .history-item {
+            width: 100%;
+            background: var(--card);
+            border-radius: 18px;
+            padding: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+        }
+
+        .history-icon {
+            width: 46px;
+            height: 46px;
+            flex: 0 0 46px;
+            border-radius: 50%;
+            background: #ebe5d9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 23px;
+        }
+
+        .history-info {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .history-time {
+            color: var(--secondary);
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .history-name {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .history-dose {
+            color: var(--secondary);
+            font-size: 13px;
+            margin-top: 3px;
+        }
+
+        .history-status {
+            width: 30px;
+            height: 30px;
+            flex: 0 0 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .history-status.taken {
+            background: var(--accent);
+            color: white;
+        }
+
+        .history-status.missed {
+            background: #e5dfd4;
+            color: var(--secondary);
+        }
+
+        .history-empty {
+            text-align: center;
+            color: var(--secondary);
+            padding: 45px 20px;
+        }
+
+        /* STATISTICS */
+
+        .statistics-screen {
+            display: none;
+            width: 100%;
+        }
+
+        .statistics-header {
+            margin-bottom: 22px;
+        }
+
+        .statistics-title {
+            font-size: 32px;
+            font-weight: 650;
+            letter-spacing: -1px;
+        }
+
+        .statistics-subtitle {
+            color: var(--secondary);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .stats-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 22px;
+        }
+
+        .stat-card {
+            min-width: 0;
+            background: var(--card);
+            border-radius: 22px;
+            padding: 18px;
+        }
+
+        .stat-card-label {
+            color: var(--secondary);
+            font-size: 13px;
+            margin-bottom: 7px;
+        }
+
+        .stat-card-value {
+            font-size: 27px;
+            font-weight: 650;
+            letter-spacing: -0.8px;
+        }
+
+        .stat-card-detail {
+            color: var(--secondary);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .stats-section-title {
+            font-size: 18px;
+            font-weight: 650;
+            margin: 24px 0 10px;
+        }
+
+        .medicine-stat {
+            width: 100%;
+            background: var(--card);
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 9px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .medicine-stat-icon {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
+            border-radius: 50%;
+            background: #ebe5d9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .medicine-stat-info {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .medicine-stat-name {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .medicine-stat-detail {
+            color: var(--secondary);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .medicine-stat-percent {
+            flex: 0 0 auto;
+            font-size: 16px;
+            font-weight: 650;
+        }
+
+        .stat-progress {
+            width: 100%;
+            height: 5px;
+            background: #dfdbd1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .stat-progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 10px;
+        }
+
+        /* MODAL */
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(40, 38, 33, 0.28);
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 480px;
+            max-height: 92vh;
+            overflow-y: auto;
+            background: #faf8f3;
+            border-radius: 28px 28px 0 0;
+            padding: 22px 20px 35px;
+            animation: slideUp 0.25s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .modal-handle {
+            width: 42px;
+            height: 4px;
+            background: #d5d0c6;
+            border-radius: 10px;
+            margin: 0 auto 22px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 27px;
+            letter-spacing: -0.7px;
+        }
+
+        .close-button {
+            width: 38px;
+            height: 38px;
+            border: none;
+            background: #eeeae2;
+            border-radius: 50%;
+            font-size: 22px;
+            color: var(--text);
+        }
+
+        /* FORM */
+
+        .field {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .field-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 550;
+            margin-bottom: 8px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 14px 15px;
+            border: 1px solid var(--border);
+            background: #fbfaf7;
+            border-radius: 14px;
+            font-size: 16px;
+            color: var(--text);
+            outline: none;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        /* ICON PICKER */
+
+        .icon-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 9px;
+        }
+
+        .icon-option {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: #fbfaf7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            transition: border 0.15s, background 0.15s;
+        }
+
+        .icon-option.selected {
+            border: 2px solid var(--accent-dark);
+            background: #eee9df;
+        }
+
+        /* SCHEDULE */
+
+        .schedule-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .schedule {
+            width: 100%;
+            background: #eee9df;
+            border-radius: 18px;
+            padding: 14px;
+        }
+
+        .schedule-top {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .schedule-time {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .schedule-amount {
+            width: 70px;
+            flex: 0 0 70px;
+        }
+
+        .unit {
+            color: var(--secondary);
+            font-size: 13px;
+            flex: 0 0 auto;
+        }
+
+        .remove-schedule {
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            border: none;
+            background: transparent;
+            color: var(--secondary);
+            font-size: 20px;
+        }
+
+        .schedule-food {
+            margin-top: 10px;
+        }
+
+        .add-schedule {
+            width: 100%;
+            padding: 13px;
+            border-radius: 14px;
+            border: 1px dashed var(--border);
+            background: transparent;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 550;
+        }
+
+        /* MODAL BUTTONS */
+
+        .save-button {
+            width: 100%;
+            border: none;
+            background: var(--accent);
+            color: white;
+            border-radius: 16px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 22px;
+        }
+
+        .cancel-button {
+            width: 100%;
+            border: none;
+            background: transparent;
+            color: var(--secondary);
+            padding: 14px;
+            font-size: 15px;
+        }
+
+        /* AUTH */
+
+        .auth-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px 20px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card);
+            border-radius: 28px;
+            padding: 30px 24px 24px;
+            border: 1px solid rgba(0, 0, 0, 0.025);
+        }
+
+        .auth-mark {
+            width: 58px;
+            height: 58px;
+            border-radius: 18px;
+            background: #ebe5d9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .auth-title {
+            font-size: 34px;
+            font-weight: 650;
+            letter-spacing: -1.2px;
+            margin: 0;
+        }
+
+        .auth-subtitle {
+            color: var(--secondary);
+            font-size: 14px;
+            margin: 7px 0 26px;
+            line-height: 1.45;
+        }
+
+        .auth-tabs {
+            display: flex;
+            background: #e9e4da;
+            padding: 4px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            border: 0;
+            background: transparent;
+            color: var(--secondary);
+            padding: 10px;
+            border-radius: 11px;
+            font-size: 14px;
+            font-weight: 550;
+        }
+
+        .auth-tab.active {
+            background: var(--card);
+            color: var(--text);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .auth-button {
+            width: 100%;
+            border: 0;
+            background: var(--accent);
+            color: white;
+            border-radius: 16px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .auth-message {
+            min-height: 20px;
+            color: var(--secondary);
+            font-size: 13px;
+            line-height: 1.4;
+            margin-top: 13px;
+        }
+
+        .auth-error {
+            color: #9b5f52;
+        }
+
+        .auth-loading {
+            opacity: 0.65;
+            pointer-events: none;
+        }
+
+        /* SMALL PHONES */
+
+        @media (max-width: 360px) {
+            .app {
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+
+            .medicine-card {
+                gap: 10px;
+                padding: 13px;
+            }
+
+            .medicine-icon {
+                width: 50px;
+                height: 50px;
+                flex-basis: 50px;
+                font-size: 24px;
+            }
+
+            .take-button {
+                min-width: 72px;
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- AUTH -->
+
+<div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+        <div class="auth-mark">💊</div>
+
+        <h1 class="auth-title">Pill Tracker</h1>
+
+        <div class="auth-subtitle">
+            Твои лекарства и история будут синхронизироваться между устройствами.
+        </div>
+
+        <div class="auth-tabs">
+            <button
+                class="auth-tab active"
+                id="authSignInTab"
+                onclick="setAuthMode('signin')">
+                Войти
+            </button>
+
+            <button
+                class="auth-tab"
+                id="authSignUpTab"
+                onclick="setAuthMode('signup')">
+                Регистрация
+            </button>
+        </div>
+
+        <div class="field">
+            <label class="field-label">Email</label>
+
+            <input
+                id="authEmail"
+                type="email"
+                autocomplete="email"
+                placeholder="you@example.com"
+            >
+        </div>
+
+        <div class="field">
+            <label class="field-label">Пароль</label>
+
+            <input
+                id="authPassword"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Минимум 6 символов"
+            >
+        </div>
+
+        <button
+            class="auth-button"
+            id="authSubmit"
+            onclick="submitAuth()">
+            Войти
+        </button>
+
+        <div
+            class="auth-message"
+            id="authMessage">
+        </div>
+    </div>
+</div>
+
+<!-- APP -->
+
+<div class="app app-hidden">
+
+    <!-- TOP BAR -->
+
+    <div class="top-bar">
+        <button
+            class="menu-button"
+            onclick="signOut()"
+            title="Выйти">
+            ☰
+        </button>
+
+        <div style="flex: 1;"></div>
+
+        <button
+            class="notification-button"
+            id="notificationButton"
+            onclick="enableNotifications()"
+            title="Включить уведомления"
+            aria-label="Включить уведомления">
+            🔔
+        </button>
+    </div>
+
+    <!-- HEADER -->
+
+    <div class="header">
+        <div
+            class="date"
+            id="currentDate">
+        </div>
+
+        <h1>Сегодня</h1>
+    </div>
+
+    <!-- PROGRESS -->
+
+    <div
+        class="progress-card"
+        id="progressCard">
+
+        <div class="progress-label">
+            Сегодня принято
+        </div>
+
+        <div class="progress-number">
+            <span id="takenCount">0</span>
+            /
+            <span id="totalCount">0</span>
+        </div>
+
+        <div
+            class="progress-percent"
+            id="progressPercent">
+            0%
+        </div>
+
+        <div class="progress-bar">
+            <div
+                class="progress-fill"
+                id="progressFill">
+            </div>
+        </div>
+    </div>
+
+    <!-- MEDICINES -->
+
+    <div id="medicineList"></div>
+
+    <!-- HISTORY -->
+
+    <div
+        id="historyScreen"
+        class="history-screen">
+
+        <div class="history-header">
+            <div class="history-title">
+                История
+            </div>
+
+            <div class="history-subtitle">
+                Все приёмы лекарств
+            </div>
+        </div>
+
+        <div class="history-tabs">
+
+            <button
+                class="history-tab active"
+                onclick="showHistoryPeriod('today', this)">
+                Сегодня
+            </button>
+
+            <button
+                class="history-tab"
+                onclick="showHistoryPeriod('week', this)">
+                7 дней
+            </button>
+
+            <button
+                class="history-tab"
+                onclick="showHistoryPeriod('month', this)">
+                30 дней
+            </button>
+
+        </div>
+
+        <div id="historyList"></div>
+    </div>
+
+    <!-- STATISTICS -->
+
+    <div
+        id="statisticsScreen"
+        class="statistics-screen">
+
+        <div class="statistics-header">
+            <div class="statistics-title">
+                Статистика
+            </div>
+
+            <div class="statistics-subtitle">
+                Соблюдение режима приёма
+            </div>
+        </div>
+
+        <div class="stats-grid">
+
+            <div class="stat-card">
+                <div class="stat-card-label">Сегодня</div>
+                <div
+                    class="stat-card-value"
+                    id="statsTodayPercent">
+                    0%
+                </div>
+                <div
+                    class="stat-card-detail"
+                    id="statsTodayDetail">
+                    0 из 0
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-label">7 дней</div>
+                <div
+                    class="stat-card-value"
+                    id="statsWeekPercent">
+                    0%
+                </div>
+                <div
+                    class="stat-card-detail"
+                    id="statsWeekDetail">
+                    0 из 0
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-label">30 дней</div>
+                <div
+                    class="stat-card-value"
+                    id="statsMonthPercent">
+                    0%
+                </div>
+                <div
+                    class="stat-card-detail"
+                    id="statsMonthDetail">
+                    0 из 0
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-label">Принято доз</div>
+                <div
+                    class="stat-card-value"
+                    id="statsTakenTotal">
+                    0
+                </div>
+                <div
+                    class="stat-card-detail"
+                    id="statsMissedTotal">
+                    0 пропущено
+                </div>
+            </div>
+
+        </div>
+
+        <div class="stats-section-title">
+            По лекарствам · 30 дней
+        </div>
+
+        <div id="medicineStatsList"></div>
+    </div>
+
+    <!-- ADD MEDICINE -->
+
+    <button
+        class="add-button"
+        id="addButton"
+        onclick="openModal()">
+        ＋ &nbsp; Добавить лекарство
+    </button>
+
+</div>
+
+<!-- BOTTOM NAVIGATION -->
+
+<div
+    class="bottom-nav nav-hidden"
+    id="bottomNav">
+
+    <button
+        class="nav-button active"
+        onclick="showToday()">
+
+        <span class="nav-icon">⌂</span>
+
+        Сегодня
+    </button>
+
+    <button
+        class="nav-button"
+        onclick="showStatistics()">
+
+        <span class="nav-icon">〽</span>
+
+        Статистика
+    </button>
+
+    <button
+        class="nav-button"
+        onclick="showHistory()">
+
+        <span class="nav-icon">◷</span>
+
+        История
+    </button>
+</div>
+
+<!-- MODAL -->
+
+<div
+    class="modal"
+    id="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-handle"></div>
+
+        <div class="modal-header">
+
+            <h2 class="modal-title">
+                Новое лекарство
+            </h2>
+
+            <button
+                class="close-button"
+                onclick="closeModal()">
+                ×
+            </button>
+
+        </div>
+
+        <!-- NAME -->
+
+        <div class="field">
+            <label class="field-label">
+                Название
+            </label>
+
+            <input
+                id="medicineName"
+                type="text"
+                placeholder="Например, Ibuprofen">
+        </div>
+
+        <!-- STRENGTH -->
+
+        <div class="field">
+            <label class="field-label">
+                Дозировка
+            </label>
+
+            <input
+                id="medicineStrength"
+                type="text"
+                placeholder="Например, 400 mg">
+        </div>
+
+        <!-- ICON -->
+
+        <div class="field">
+            <label class="field-label">
+                Иконка
+            </label>
+
+            <div class="icon-grid">
+
+                <button
+                    type="button"
+                    class="icon-option selected"
+                    data-icon="💊"
+                    onclick="selectIcon(this)">
+                    💊
+                </button>
+
+                <button
+                    type="button"
+                    class="icon-option"
+                    data-icon="🟠"
+                    onclick="selectIcon(this)">
+                    🟠
+                </button>
+
+                <button
+                    type="button"
+                    class="icon-option"
+                    data-icon="🫙"
+                    onclick="selectIcon(this)">
+                    🫙
+                </button>
+
+                <button
+                    type="button"
+                    class="icon-option"
+                    data-icon="💧"
+                    onclick="selectIcon(this)">
+                    💧
+                </button>
+
+                <button
+                    type="button"
+                    class="icon-option"
+                    data-icon="🧴"
+                    onclick="selectIcon(this)">
+                    🧴
+                </button>
+
+                <button
+                    type="button"
+                    class="icon-option"
+                    data-icon="🩹"
+                    onclick="selectIcon(this)">
+                    🩹
+                </button>
+
+                <button
+                    type="button"
+                    class="icon-option"
+                    data-icon="💉"
+                    onclick="selectIcon(this)">
+                    💉
+                </button>
+
+                <button
+                    type="button"
+                    class="icon-option"
+                    data-icon="🥄"
+                    onclick="selectIcon(this)">
+                    🥄
+                </button>
+
+            </div>
+        </div>
+
+        <!-- SCHEDULE -->
+
+        <div class="field">
+
+            <label class="field-label">
+                Приёмы
+            </label>
+
+            <div
+                class="schedule-container"
+                id="scheduleContainer">
+
+                <div class="schedule">
+
+                    <div class="schedule-top">
+
+                        <input
+                            type="time"
+                            class="schedule-time">
+
+                        <input
+                            type="number"
+                            class="schedule-amount"
+                            min="0.25"
+                            step="0.25"
+                            value="1">
+
+                        <span class="unit">
+                            шт.
+                        </span>
+
+                    </div>
+
+                    <select class="schedule-food">
+
+                        <option value="any">
+                            Не зависит от еды
+                        </option>
+
+                        <option value="before">
+                            До еды
+                        </option>
+
+                        <option value="during">
+                            Во время еды
+                        </option>
+
+                        <option value="after">
+                            После еды
+                        </option>
+
+                    </select>
+
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="add-schedule"
+                onclick="addSchedule()">
+                ＋ Добавить приём
+            </button>
+
+        </div>
+
+        <!-- NOTE -->
+
+        <div class="field">
+
+            <label class="field-label">
+                Заметка
+                <span style="color: #aaa;">
+                    (необязательно)
+                </span>
+            </label>
+
+            <textarea
+                id="medicineNote"
+                placeholder="Например, курс 10 дней"></textarea>
+
+        </div>
+
+        <!-- SAVE -->
+
+        <button
+            type="button"
+            class="save-button"
+            onclick="addMedicine()">
+            Сохранить
+        </button>
+
+        <button
+            type="button"
+            class="cancel-button"
+            onclick="closeModal()">
+            Отмена
+        </button>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+/* ========================================
+   SUPABASE CONFIG
+   ======================================== */
+
+const SUPABASE_URL =
+    "https://bwlxxdvtigiuzsypcktf.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_Wuk1kCjL-BSQOZjOf_J-cg_AkH_Ud_D";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
+
+let currentUser = null;
+let medicines = [];
+let history = [];
+let selectedIcon = "💊";
+let currentHistoryPeriod = "today";
+let authMode = "signin";
+
+/* ========================================
+   PUSH NOTIFICATIONS
+   ======================================== */
+
+// PUBLIC VAPID KEY.
+// Private VAPID key must NEVER be placed in this file.
+const VAPID_PUBLIC_KEY =
+    "BNlXGcawGe7XKuGmuLn7_9dNyx1RrFUUwRLUinu1YXU9a-gjO-h81TtfI1ZW1udFiGqnYCPyTlgANtkhIf_dg84";
+
+function urlBase64ToUint8Array(base64String) {
+    const padding =
+        "=".repeat((4 - (base64String.length % 4)) % 4);
+
+    const base64 =
+        (base64String + padding)
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+
+    const rawData = window.atob(base64);
+
+    return Uint8Array.from(
+        [...rawData].map(char => char.charCodeAt(0))
+    );
+}
+
+async function enableNotifications() {
+    if (!currentUser) {
+        alert("Сначала войди в аккаунт.");
+        return;
+    }
+
+    const button = document.getElementById("notificationButton");
+
+    if (!("Notification" in window)) {
+        alert(
+            "Уведомления в этом режиме недоступны.\n\n" +
+            "На iPhone открой Pill Tracker в Safari и добавь сайт на экран Домой. Затем открой приложение с иконки и нажми 🔔."
+        );
+        return;
+    }
+
+    if (!("serviceWorker" in navigator)) {
+        alert("Этот браузер не поддерживает Service Worker.");
+        return;
+    }
+
+    try {
+        button.disabled = true;
+        button.style.opacity = "0.5";
+
+        let permission = Notification.permission;
+
+        if (permission !== "granted") {
+            permission =
+                await Notification.requestPermission();
+        }
+
+        if (permission !== "granted") {
+            button.classList.add("denied");
+            button.disabled = false;
+            button.style.opacity = "";
+            alert(
+                "Уведомления отключены. Разреши их в настройках браузера для этого сайта."
+            );
+            return;
+        }
+
+        const registration =
+            await navigator.serviceWorker.ready;
+
+        let subscription =
+            await registration.pushManager.getSubscription();
+
+        if (!subscription) {
+            subscription =
+                await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey:
+                        urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
+        }
+
+        const subscriptionJson =
+            subscription.toJSON();
+
+        if (
+            !subscriptionJson.endpoint ||
+            !subscriptionJson.keys ||
+            !subscriptionJson.keys.p256dh ||
+            !subscriptionJson.keys.auth
+        ) {
+            throw new Error(
+                "Некорректная push subscription."
+            );
+        }
+
+        const { error } =
+            await supabaseClient
+                .from("push_subscriptions")
+                .upsert(
+                    {
+                        user_id: currentUser.id,
+                        endpoint: subscriptionJson.endpoint,
+                        p256dh: subscriptionJson.keys.p256dh,
+                        auth: subscriptionJson.keys.auth
+                    },
+                    {
+                        onConflict:
+                            "user_id,endpoint"
+                    }
+                );
+
+        if (error) {
+            throw error;
+        }
+
+        button.classList.remove("denied");
+        button.classList.add("enabled");
+        button.innerText = "🔔";
+        button.title = "Уведомления включены";
+
+        // Test notification.
+        // This is only shown when the user enables notifications.
+        new Notification("Pill Tracker", {
+            body: "Уведомления включены ✓"
+        });
+
+        console.log(
+            "Push subscription saved successfully."
+        );
+
+    } catch (error) {
+        console.error(
+            "Notification setup error:",
+            error
+        );
+
+        alert(
+            "Не удалось включить уведомления.\n\n" +
+            (error.message ||
+                "Неизвестная ошибка")
+        );
+
+    } finally {
+        button.disabled = false;
+        button.style.opacity = "";
+    }
+}
+
+async function updateNotificationButton() {
+    const button =
+        document.getElementById("notificationButton");
+
+    if (!button) return;
+
+    // Keep the button visible even when this browser/context cannot use Web Push.
+    // On iPhone, real Web Push requires the site to be opened as a Home Screen web app.
+    if (!("Notification" in window)) {
+        button.style.display = "flex";
+        button.classList.remove("enabled");
+        button.classList.add("unsupported");
+        button.innerText = "🔔";
+        button.title = "Уведомления доступны в приложении с экрана Домой";
+        return;
+    }
+
+    button.style.display = "flex";
+
+    if (Notification.permission === "denied") {
+        button.classList.add("denied");
+        button.title =
+            "Уведомления заблокированы";
+        return;
+    }
+
+    if (Notification.permission !== "granted") {
+        button.classList.remove("enabled");
+        button.classList.remove("denied");
+        button.innerText = "🔔";
+        button.title =
+            "Включить уведомления";
+        return;
+    }
+
+    try {
+        const registration =
+            await navigator.serviceWorker.ready;
+
+        const subscription =
+            await registration.pushManager
+                .getSubscription();
+
+        if (subscription) {
+            button.classList.add("enabled");
+            button.classList.remove("denied");
+            button.innerText = "🔔";
+            button.title =
+                "Уведомления включены";
+        }
+    } catch (error) {
+        console.error(
+            "Could not check notification subscription:",
+            error
+        );
+    }
+}
+
+/* ========================================
+   HELPERS
+   ======================================== */
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function getToday() {
+    return dateKey(new Date());
+}
+
+function dateFromOffset(daysAgo) {
+    const date = new Date();
+
+    date.setHours(0, 0, 0, 0);
+    date.setDate(
+        date.getDate() - daysAgo
+    );
+
+    return date;
+}
+
+function dateKey(date) {
+    const year = date.getFullYear();
+    const month =
+        String(date.getMonth() + 1)
+            .padStart(2, "0");
+    const day =
+        String(date.getDate())
+            .padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+function formatHistoryDate(date) {
+    const today = new Date();
+    const yesterday = dateFromOffset(1);
+
+    if (
+        dateKey(date) ===
+        dateKey(today)
+    ) {
+        return "Сегодня";
+    }
+
+    if (
+        dateKey(date) ===
+        dateKey(yesterday)
+    ) {
+        return "Вчера";
+    }
+
+    return date.toLocaleDateString(
+        "ru-RU",
+        {
+            weekday: "long",
+            day: "numeric",
+            month: "long"
+        }
+    );
+}
+
+function foodText(food) {
+    if (food === "before")
+        return "До еды";
+
+    if (food === "during")
+        return "Во время еды";
+
+    if (food === "after")
+        return "После еды";
+
+    return "Не зависит от еды";
+}
+
+function localDateTimeFromHistory(entry) {
+    const time = entry.time || "00:00";
+
+    return `${entry.date}T${time}:00`;
+}
+
+function showDate() {
+    const now = new Date();
+
+    document.getElementById(
+        "currentDate"
+    ).innerText =
+        now.toLocaleDateString(
+            "ru-RU",
+            {
+                weekday: "long",
+                day: "numeric",
+                month: "long"
+            }
+        );
+}
+
+function setAppVisible(visible) {
+    document
+        .querySelector(".app")
+        .classList
+        .toggle(
+            "app-hidden",
+            !visible
+        );
+
+    document
+        .getElementById("bottomNav")
+        .classList
+        .toggle(
+            "nav-hidden",
+            !visible
+        );
+
+    document
+        .getElementById("authScreen")
+        .classList
+        .toggle(
+            "app-hidden",
+            visible
+        );
+}
+
+/* ========================================
+   AUTH
+   ======================================== */
+
+function setAuthMode(mode) {
+    authMode = mode;
+
+    document
+        .getElementById("authSignInTab")
+        .classList
+        .toggle(
+            "active",
+            mode === "signin"
+        );
+
+    document
+        .getElementById("authSignUpTab")
+        .classList
+        .toggle(
+            "active",
+            mode === "signup"
+        );
+
+    document.getElementById(
+        "authSubmit"
+    ).innerText =
+        mode === "signin"
+            ? "Войти"
+            : "Создать аккаунт";
+
+    document.getElementById(
+        "authPassword"
+    ).autocomplete =
+        mode === "signin"
+            ? "current-password"
+            : "new-password";
+
+    document.getElementById(
+        "authMessage"
+    ).innerText = "";
+}
+
+function authMessage(
+    text,
+    error = false
+) {
+    const el =
+        document.getElementById(
+            "authMessage"
+        );
+
+    el.innerText = text;
+
+    el.classList.toggle(
+        "auth-error",
+        error
+    );
+}
+
+async function submitAuth() {
+    const email =
+        document.getElementById(
+            "authEmail"
+        ).value.trim();
+
+    const password =
+        document.getElementById(
+            "authPassword"
+        ).value;
+
+    const button =
+        document.getElementById(
+            "authSubmit"
+        );
+
+    if (!email || !password) {
+        authMessage(
+            "Введите email и пароль.",
+            true
+        );
+        return;
+    }
+
+    if (password.length < 6) {
+        authMessage(
+            "Пароль должен содержать минимум 6 символов.",
+            true
+        );
+        return;
+    }
+
+    button.classList.add(
+        "auth-loading"
+    );
+
+    authMessage(
+        "Подключаемся…"
+    );
+
+    try {
+        if (authMode === "signup") {
+            const {
+                data,
+                error
+            } =
+                await supabaseClient.auth
+                    .signUp({
+                        email,
+                        password
+                    });
+
+            if (error) throw error;
+
+            if (data.session) {
+                await finishLogin(
+                    data.session
+                );
+            } else {
+                authMessage(
+                    "Аккаунт создан. Проверь почту и подтверди email, затем войди."
+                );
+            }
+        } else {
+            const {
+                data,
+                error
+            } =
+                await supabaseClient.auth
+                    .signInWithPassword({
+                        email,
+                        password
+                    });
+
+            if (error) throw error;
+
+            await finishLogin(
+                data.session
+            );
+        }
+
+    } catch (error) {
+        console.error(error);
+
+        authMessage(
+            error.message ||
+                "Не удалось выполнить вход.",
+            true
+        );
+
+    } finally {
+        button.classList.remove(
+            "auth-loading"
+        );
+    }
+}
+
+async function finishLogin(session) {
+    currentUser = session.user;
+
+    setAppVisible(true);
+
+    await loadCloudData();
+
+    showDate();
+
+    renderMedicines();
+
+    showToday();
+
+    await updateNotificationButton();
+}
+
+async function signOut() {
+    if (!currentUser) return;
+
+    const {
+        error
+    } =
+        await supabaseClient.auth
+            .signOut();
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    currentUser = null;
+    medicines = [];
+    history = [];
+
+    setAppVisible(false);
+
+    document.getElementById(
+        "authEmail"
+    ).value = "";
+
+    document.getElementById(
+        "authPassword"
+    ).value = "";
+
+    authMessage("");
+}
+
+/* ========================================
+   CLOUD DATA
+   ======================================== */
+
+async function loadCloudData() {
+    if (!currentUser) return;
+
+    const [
+        medResult,
+        scheduleResult,
+        historyResult
+    ] =
+        await Promise.all([
+            supabaseClient
+                .from("medicines")
+                .select(
+                    "id,name,dosage,icon,notes,created_at"
+                )
+                .eq(
+                    "user_id",
+                    currentUser.id
+                )
+                .order(
+                    "created_at",
+                    {
+                        ascending: true
+                    }
+                ),
+
+            supabaseClient
+                .from("schedules")
+                .select(
+                    "id,medicine_id,time,quantity,food_timing,created_at"
+                )
+                .eq(
+                    "user_id",
+                    currentUser.id
+                )
+                .order(
+                    "time",
+                    {
+                        ascending: true
+                    }
+                ),
+
+            supabaseClient
+                .from("medication_history")
+                .select(
+                    "id,medicine_id,schedule_id,taken_at,created_at"
+                )
+                .eq(
+                    "user_id",
+                    currentUser.id
+                )
+                .order(
+                    "taken_at",
+                    {
+                        ascending: false
+                    }
+                )
+        ]);
+
+    if (medResult.error)
+        throw medResult.error;
+
+    if (scheduleResult.error)
+        throw scheduleResult.error;
+
+    if (historyResult.error)
+        throw historyResult.error;
+
+    medicines =
+        medResult.data.map(m => ({
+            id: m.id,
+            name:
+                m.name ||
+                "Лекарство",
+            strength:
+                m.dosage || "",
+            icon:
+                m.icon ||
+                "💊",
+            note:
+                m.notes || "",
+            schedules: []
+        }));
+
+    const medicineMap =
+        new Map(
+            medicines.map(
+                m => [m.id, m]
+            )
+        );
+
+    scheduleResult.data.forEach(
+        s => {
+            const medicine =
+                medicineMap.get(
+                    s.medicine_id
+                );
+
+            if (!medicine)
+                return;
+
+            medicine.schedules.push({
+                id: s.id,
+                time: s.time,
+                amount:
+                    String(
+                        s.quantity ?? 1
+                    ),
+                food:
+                    s.food_timing ||
+                    "any"
+            });
+        }
+    );
+
+    history =
+        historyResult.data.map(
+            h => {
+                const d =
+                    new Date(
+                        h.taken_at
+                    );
+
+                return {
+                    id: h.id,
+                    medicineId:
+                        h.medicine_id,
+                    scheduleId:
+                        h.schedule_id,
+                    date:
+                        dateKey(d),
+                    time:
+                        d.toLocaleTimeString(
+                            "ru-RU",
+                            {
+                                hour: "2-digit",
+                                minute: "2-digit"
+                            }
+                        )
+                };
+            }
+        );
+
+    await migrateLocalDataIfNeeded();
+}
+
+async function migrateLocalDataIfNeeded() {
+    const localMedicines =
+        JSON.parse(
+            localStorage.getItem(
+                "medicines"
+            ) || "[]"
+        );
+
+    const localHistory =
+        JSON.parse(
+            localStorage.getItem(
+                "history"
+            ) || "[]"
+        );
+
+    if (
+        !currentUser ||
+        medicines.length > 0 ||
+        localMedicines.length === 0
+    ) {
+        return;
+    }
+
+    const idMap = new Map();
+
+    for (
+        const oldMedicine
+        of localMedicines
+    ) {
+        const newMedicineId =
+            crypto.randomUUID();
+
+        const {
+            error: medError
+        } =
+            await supabaseClient
+                .from("medicines")
+                .insert({
+                    id:
+                        newMedicineId,
+                    user_id:
+                        currentUser.id,
+                    name:
+                        oldMedicine.name ||
+                        "Лекарство",
+                    dosage:
+                        oldMedicine.strength ||
+                        oldMedicine.dose ||
+                        "",
+                    icon:
+                        oldMedicine.icon ||
+                        "💊",
+                    notes:
+                        oldMedicine.note ||
+                        ""
+                });
+
+        if (medError)
+            throw medError;
+
+        idMap.set(
+            oldMedicine.id,
+            {
+                medicineId:
+                    newMedicineId,
+                schedules:
+                    new Map()
+            }
+        );
+
+        for (
+            const oldSchedule
+            of (
+                oldMedicine.schedules ||
+                []
+            )
+        ) {
+            const newScheduleId =
+                crypto.randomUUID();
+
+            const {
+                error:
+                    scheduleError
+            } =
+                await supabaseClient
+                    .from("schedules")
+                    .insert({
+                        id:
+                            newScheduleId,
+                        medicine_id:
+                            newMedicineId,
+                        user_id:
+                            currentUser.id,
+                        time:
+                            oldSchedule.time ||
+                            "08:00",
+                        quantity:
+                            Number(
+                                oldSchedule.amount ||
+                                1
+                            ),
+                        food_timing:
+                            oldSchedule.food ||
+                            "any"
+                    });
+
+            if (scheduleError)
+                throw scheduleError;
+
+            idMap
+                .get(oldMedicine.id)
+                .schedules.set(
+                    oldSchedule.id,
+                    newScheduleId
+                );
+        }
+    }
+
+    for (
+        const oldEntry
+        of localHistory
+    ) {
+        const mapped =
+            idMap.get(
+                oldEntry.medicineId
+            );
+
+        const newScheduleId =
+            mapped?.schedules.get(
+                oldEntry.scheduleId
+            );
+
+        if (
+            !mapped ||
+            !newScheduleId
+        ) {
+            continue;
+        }
+
+        const {
+            error
+        } =
+            await supabaseClient
+                .from(
+                    "medication_history"
+                )
+                .insert({
+                    id:
+                        crypto.randomUUID(),
+                    medicine_id:
+                        mapped.medicineId,
+                    schedule_id:
+                        newScheduleId,
+                    user_id:
+                        currentUser.id,
+                    taken_at:
+                        localDateTimeFromHistory(
+                            oldEntry
+                        )
+                });
+
+        if (error)
+            throw error;
+    }
+
+    localStorage.removeItem(
+        "medicines"
+    );
+
+    localStorage.removeItem(
+        "history"
+    );
+
+    const {
+        data: meds
+    } =
+        await supabaseClient
+            .from("medicines")
+            .select(
+                "id,name,dosage,icon,notes,created_at"
+            )
+            .eq(
+                "user_id",
+                currentUser.id
+            )
+            .order(
+                "created_at",
+                {
+                    ascending: true
+                }
+            );
+
+    const {
+        data: schedules
+    } =
+        await supabaseClient
+            .from("schedules")
+            .select(
+                "id,medicine_id,time,quantity,food_timing,created_at"
+            )
+            .eq(
+                "user_id",
+                currentUser.id
+            )
+            .order(
+                "time",
+                {
+                    ascending: true
+                }
+            );
+
+    const {
+        data: histories
+    } =
+        await supabaseClient
+            .from("medication_history")
+            .select(
+                "id,medicine_id,schedule_id,taken_at,created_at"
+            )
+            .eq(
+                "user_id",
+                currentUser.id
+            )
+            .order(
+                "taken_at",
+                {
+                    ascending: false
+                }
+            );
+
+    medicines =
+        (meds || []).map(
+            m => ({
+                id: m.id,
+                name: m.name,
+                strength:
+                    m.dosage || "",
+                icon:
+                    m.icon ||
+                    "💊",
+                note:
+                    m.notes || "",
+                schedules: []
+            })
+        );
+
+    const map =
+        new Map(
+            medicines.map(
+                m => [m.id, m]
+            )
+        );
+
+    (schedules || [])
+        .forEach(
+            s => {
+                map
+                    .get(
+                        s.medicine_id
+                    )
+                    ?.schedules.push({
+                        id: s.id,
+                        time: s.time,
+                        amount:
+                            String(
+                                s.quantity ??
+                                1
+                            ),
+                        food:
+                            s.food_timing ||
+                            "any"
+                    });
+            }
+        );
+
+    history =
+        (histories || []).map(
+            h => {
+                const d =
+                    new Date(
+                        h.taken_at
+                    );
+
+                return {
+                    id: h.id,
+                    medicineId:
+                        h.medicine_id,
+                    scheduleId:
+                        h.schedule_id,
+                    date:
+                        dateKey(d),
+                    time:
+                        d.toLocaleTimeString(
+                            "ru-RU",
+                            {
+                                hour: "2-digit",
+                                minute: "2-digit"
+                            }
+                        )
+                };
+            }
+        );
+}
+
+/* ========================================
+   RENDER MEDICINES
+   ======================================== */
+
+function renderMedicines() {
+    const list =
+        document.getElementById(
+            "medicineList"
+        );
+
+    list.innerHTML = "";
+
+    let schedules = [];
+
+    medicines.forEach(
+        medicine => {
+            if (
+                !Array.isArray(
+                    medicine.schedules
+                )
+            ) {
+                return;
+            }
+
+            medicine.schedules
+                .forEach(
+                    schedule => {
+                        schedules.push({
+                            medicine,
+                            schedule
+                        });
+                    }
+                );
+        }
+    );
+
+    schedules.sort(
+        (a, b) =>
+            a.schedule.time.localeCompare(
+                b.schedule.time
+            )
+    );
+
+    if (
+        schedules.length === 0
+    ) {
+        list.innerHTML = `
+            <div class="empty">
+                Пока нет лекарств.<br>
+                Добавь первое лекарство ниже.
+            </div>
+        `;
+
+        updateProgress();
+        return;
+    }
+
+    schedules.forEach(
+        ({
+            medicine,
+            schedule
+        }) => {
+            const taken =
+                history.some(
+                    entry =>
+                        entry.date ===
+                            getToday() &&
+                        entry.medicineId ===
+                            medicine.id &&
+                        entry.scheduleId ===
+                            schedule.id
+                );
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+            card.className =
+                "medicine-card" +
+                (
+                    taken
+                        ? " completed"
+                        : ""
+                );
+
+            card.innerHTML = `
+                <div class="medicine-icon">
+                    ${escapeHtml(
+                        medicine.icon ||
+                        "💊"
+                    )}
+                </div>
+
+                <div class="medicine-info">
+                    <div class="medicine-time">
+                        ${escapeHtml(
+                            schedule.time
+                        )}
+                    </div>
+
+                    <div class="medicine-name">
+                        ${escapeHtml(
+                            medicine.name
+                        )}
+                    </div>
+
+                    <div class="medicine-dose">
+                        ${escapeHtml(
+                            medicine.strength ||
+                            ""
+                        )}${medicine.strength ? " · " : ""}${escapeHtml(
+                            schedule.amount
+                        )} шт.
+                    </div>
+
+                    <div class="medicine-food">
+                        🍴 ${escapeHtml(
+                            foodText(
+                                schedule.food
+                            )
+                        )}
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    class="take-button ${
+                        taken
+                            ? "completed-button"
+                            : ""
+                    }">
+                    ${
+                        taken
+                            ? "✓"
+                            : "Принять"
+                    }
+                </button>
+            `;
+
+            card
+                .querySelector(
+                    ".take-button"
+                )
+                .addEventListener(
+                    "click",
+                    () =>
+                        takeMedicine(
+                            medicine.id,
+                            schedule.id
+                        )
+                );
+
+            list.appendChild(card);
+        }
+    );
+
+    updateProgress();
+}
+
+/* ========================================
+   TAKE / UNTAKE
+   ======================================== */
+
+async function takeMedicine(
+    medicineId,
+    scheduleId
+) {
+    if (!currentUser)
+        return;
+
+    const existing =
+        history.find(
+            entry =>
+                entry.date ===
+                    getToday() &&
+                entry.medicineId ===
+                    medicineId &&
+                entry.scheduleId ===
+                    scheduleId
+        );
+
+    try {
+        if (existing) {
+            const {
+                error
+            } =
+                await supabaseClient
+                    .from(
+                        "medication_history"
+                    )
+                    .delete()
+                    .eq(
+                        "id",
+                        existing.id
+                    )
+                    .eq(
+                        "user_id",
+                        currentUser.id
+                    );
+
+            if (error)
+                throw error;
+
+            history =
+                history.filter(
+                    entry =>
+                        entry.id !==
+                        existing.id
+                );
+
+        } else {
+            const takenAt =
+                new Date()
+                    .toISOString();
+
+            const newId =
+                crypto.randomUUID();
+
+            const {
+                error
+            } =
+                await supabaseClient
+                    .from(
+                        "medication_history"
+                    )
+                    .insert({
+                        id: newId,
+                        medicine_id:
+                            medicineId,
+                        schedule_id:
+                            scheduleId,
+                        user_id:
+                            currentUser.id,
+                        taken_at:
+                            takenAt
+                    });
+
+            if (error)
+                throw error;
+
+            const d =
+                new Date(
+                    takenAt
+                );
+
+            history.unshift({
+                id: newId,
+                medicineId,
+                scheduleId,
+                date:
+                    dateKey(d),
+                time:
+                    d.toLocaleTimeString(
+                        "ru-RU",
+                        {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                        }
+                    )
+            });
+        }
+
+        renderMedicines();
+        renderHistory();
+
+        if (
+            document.getElementById(
+                "statisticsScreen"
+            ).style.display !==
+            "none"
+        ) {
+            renderStatistics();
+        }
+
+    } catch (error) {
+        console.error(error);
+
+        alert(
+            "Не удалось сохранить приём. Проверь интернет-соединение."
+        );
+    }
+}
+
+/* ========================================
+   PROGRESS
+   ======================================== */
+
+function updateProgress() {
+    let total = 0;
+    let taken = 0;
+
+    medicines.forEach(
+        medicine => {
+            if (
+                !Array.isArray(
+                    medicine.schedules
+                )
+            ) {
+                return;
+            }
+
+            medicine.schedules
+                .forEach(
+                    schedule => {
+                        total++;
+
+                        if (
+                            history.some(
+                                entry =>
+                                    entry.date ===
+                                        getToday() &&
+                                    entry.medicineId ===
+                                        medicine.id &&
+                                    entry.scheduleId ===
+                                        schedule.id
+                            )
+                        ) {
+                            taken++;
+                        }
+                    }
+                );
+        }
+    );
+
+    document.getElementById(
+        "takenCount"
+    ).innerText = taken;
+
+    document.getElementById(
+        "totalCount"
+    ).innerText = total;
+
+    const percentage =
+        total === 0
+            ? 0
+            : Math.round(
+                taken /
+                total *
+                100
+            );
+
+    document.getElementById(
+        "progressPercent"
+    ).innerText =
+        percentage + "%";
+
+    document.getElementById(
+        "progressFill"
+    ).style.width =
+        percentage + "%";
+}
+
+/* ========================================
+   ICON / SCHEDULE / MODAL
+   ======================================== */
+
+function selectIcon(button) {
+    document
+        .querySelectorAll(
+            ".icon-option"
+        )
+        .forEach(
+            item =>
+                item.classList.remove(
+                    "selected"
+                )
+        );
+
+    button.classList.add(
+        "selected"
+    );
+
+    selectedIcon =
+        button.dataset.icon;
+}
+
+function addSchedule() {
+    const container =
+        document.getElementById(
+            "scheduleContainer"
+        );
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+    div.className =
+        "schedule";
+
+    div.innerHTML = `
+        <div class="schedule-top">
+
+            <input
+                type="time"
+                class="schedule-time">
+
+            <input
+                type="number"
+                class="schedule-amount"
+                min="0.25"
+                step="0.25"
+                value="1">
+
+            <span class="unit">
+                шт.
+            </span>
+
+            <button
+                type="button"
+                class="remove-schedule">
+                ×
+            </button>
+
+        </div>
+
+        <select class="schedule-food">
+
+            <option value="any">
+                Не зависит от еды
+            </option>
+
+            <option value="before">
+                До еды
+            </option>
+
+            <option value="during">
+                Во время еды
+            </option>
+
+            <option value="after">
+                После еды
+            </option>
+
+        </select>
+    `;
+
+    div
+        .querySelector(
+            ".remove-schedule"
+        )
+        .onclick =
+            () =>
+                div.remove();
+
+    container.appendChild(div);
+}
+
+async function addMedicine() {
+    if (!currentUser)
+        return;
+
+    const name =
+        document.getElementById(
+            "medicineName"
+        ).value.trim();
+
+    const strength =
+        document.getElementById(
+            "medicineStrength"
+        ).value.trim();
+
+    const note =
+        document.getElementById(
+            "medicineNote"
+        ).value.trim();
+
+    if (!name) {
+        alert(
+            "Введите название лекарства"
+        );
+        return;
+    }
+
+    const timeInputs =
+        document.querySelectorAll(
+            ".schedule-time"
+        );
+
+    const amountInputs =
+        document.querySelectorAll(
+            ".schedule-amount"
+        );
+
+    const foodInputs =
+        document.querySelectorAll(
+            ".schedule-food"
+        );
+
+    const schedules = [];
+
+    for (
+        let i = 0;
+        i < timeInputs.length;
+        i++
+    ) {
+        if (
+            !timeInputs[i].value
+        ) {
+            alert(
+                "Укажите время каждого приёма"
+            );
+            return;
+        }
+
+        schedules.push({
+            id:
+                crypto.randomUUID(),
+            time:
+                timeInputs[i].value,
+            amount:
+                amountInputs[i].value,
+            food:
+                foodInputs[i].value
+        });
+    }
+
+    try {
+        const medicineId =
+            crypto.randomUUID();
+
+        const {
+            error: medError
+        } =
+            await supabaseClient
+                .from("medicines")
+                .insert({
+                    id: medicineId,
+                    user_id:
+                        currentUser.id,
+                    name,
+                    dosage:
+                        strength,
+                    icon:
+                        selectedIcon,
+                    notes:
+                        note
+                });
+
+        if (medError)
+            throw medError;
+
+        const rows =
+            schedules.map(
+                s => ({
+                    id: s.id,
+                    medicine_id:
+                        medicineId,
+                    user_id:
+                        currentUser.id,
+                    time: s.time,
+                    quantity:
+                        Number(
+                            s.amount
+                        ),
+                    food_timing:
+                        s.food
+                })
+            );
+
+        const {
+            error:
+                scheduleError
+        } =
+            await supabaseClient
+                .from("schedules")
+                .insert(rows);
+
+        if (scheduleError)
+            throw scheduleError;
+
+        medicines.push({
+            id: medicineId,
+            name,
+            strength,
+            icon:
+                selectedIcon,
+            note,
+            schedules
+        });
+
+        closeModal();
+
+        renderMedicines();
+
+    } catch (error) {
+        console.error(error);
+
+        alert(
+            "Не удалось добавить лекарство. Проверь интернет-соединение."
+        );
+    }
+}
+
+function resetModal() {
+    document.getElementById(
+        "medicineName"
+    ).value = "";
+
+    document.getElementById(
+        "medicineStrength"
+    ).value = "";
+
+    document.getElementById(
+        "medicineNote"
+    ).value = "";
+
+    document.getElementById(
+        "scheduleContainer"
+    ).innerHTML = `
+        <div class="schedule">
+
+            <div class="schedule-top">
+
+                <input
+                    type="time"
+                    class="schedule-time">
+
+                <input
+                    type="number"
+                    class="schedule-amount"
+                    min="0.25"
+                    step="0.25"
+                    value="1">
+
+                <span class="unit">
+                    шт.
+                </span>
+
+            </div>
+
+            <select class="schedule-food">
+
+                <option value="any">
+                    Не зависит от еды
+                </option>
+
+                <option value="before">
+                    До еды
+                </option>
+
+                <option value="during">
+                    Во время еды
+                </option>
+
+                <option value="after">
+                    После еды
+                </option>
+
+            </select>
+
+        </div>
+    `;
+
+    selectedIcon = "💊";
+
+    document
+        .querySelectorAll(
+            ".icon-option"
+        )
+        .forEach(
+            (item, index) =>
+                item.classList.toggle(
+                    "selected",
+                    index === 0
+                )
+        );
+}
+
+function openModal() {
+    document
+        .getElementById("modal")
+        .classList.add(
+            "active"
+        );
+}
+
+function closeModal() {
+    document
+        .getElementById("modal")
+        .classList.remove(
+            "active"
+        );
+
+    resetModal();
+}
+
+/* ========================================
+   NAVIGATION
+   ======================================== */
+
+function hideScreens() {
+    document.getElementById(
+        "medicineList"
+    ).style.display = "none";
+
+    document.getElementById(
+        "historyScreen"
+    ).style.display = "none";
+
+    document.getElementById(
+        "statisticsScreen"
+    ).style.display = "none";
+
+    document.getElementById(
+        "progressCard"
+    ).style.display = "none";
+
+    document.getElementById(
+        "addButton"
+    ).style.display = "none";
+}
+
+function showToday() {
+    hideScreens();
+
+    document.getElementById(
+        "medicineList"
+    ).style.display = "block";
+
+    document.getElementById(
+        "progressCard"
+    ).style.display = "block";
+
+    document.getElementById(
+        "addButton"
+    ).style.display = "block";
+
+    setActiveNav(0);
+}
+
+function showHistory() {
+    hideScreens();
+
+    document.getElementById(
+        "historyScreen"
+    ).style.display = "block";
+
+    setActiveNav(2);
+
+    showHistoryPeriod(
+        "today",
+        document.querySelector(
+            ".history-tab"
+        )
+    );
+}
+
+function showStatistics() {
+    hideScreens();
+
+    document.getElementById(
+        "statisticsScreen"
+    ).style.display = "block";
+
+    setActiveNav(1);
+
+    renderStatistics();
+}
+
+function setActiveNav(index) {
+    document
+        .querySelectorAll(
+            ".nav-button"
+        )
+        .forEach(
+            (button, i) =>
+                button.classList.toggle(
+                    "active",
+                    i === index
+                )
+        );
+}
+
+/* ========================================
+   STATISTICS
+   ======================================== */
+
+function getStatsForPeriod(days) {
+    let planned = 0;
+    let taken = 0;
+
+    for (
+        let offset = 0;
+        offset < days;
+        offset++
+    ) {
+        const dateString =
+            dateKey(
+                dateFromOffset(
+                    offset
+                )
+            );
+
+        medicines.forEach(
+            medicine => {
+                if (
+                    !Array.isArray(
+                        medicine.schedules
+                    )
+                ) {
+                    return;
+                }
+
+                medicine.schedules
+                    .forEach(
+                        schedule => {
+                            planned++;
+
+                            if (
+                                history.some(
+                                    entry =>
+                                        entry.date ===
+                                            dateString &&
+                                        entry.medicineId ===
+                                            medicine.id &&
+                                        entry.scheduleId ===
+                                            schedule.id
+                                )
+                            ) {
+                                taken++;
+                            }
+                        }
+                    );
+            }
+        );
+    }
+
+    return {
+        planned,
+        taken,
+        missed:
+            planned - taken,
+        percent:
+            planned === 0
+                ? 0
+                : Math.round(
+                    taken /
+                    planned *
+                    100
+                )
+    };
+}
+
+function renderStatistics() {
+    const today =
+        getStatsForPeriod(1);
+
+    const week =
+        getStatsForPeriod(7);
+
+    const month =
+        getStatsForPeriod(30);
+
+    document.getElementById(
+        "statsTodayPercent"
+    ).innerText =
+        today.percent + "%";
+
+    document.getElementById(
+        "statsTodayDetail"
+    ).innerText =
+        today.taken +
+        " из " +
+        today.planned +
+        " принято";
+
+    document.getElementById(
+        "statsWeekPercent"
+    ).innerText =
+        week.percent + "%";
+
+    document.getElementById(
+        "statsWeekDetail"
+    ).innerText =
+        week.taken +
+        " из " +
+        week.planned +
+        " принято";
+
+    document.getElementById(
+        "statsMonthPercent"
+    ).innerText =
+        month.percent + "%";
+
+    document.getElementById(
+        "statsMonthDetail"
+    ).innerText =
+        month.taken +
+        " из " +
+        month.planned +
+        " принято";
+
+    document.getElementById(
+        "statsTakenTotal"
+    ).innerText =
+        month.taken;
+
+    document.getElementById(
+        "statsMissedTotal"
+    ).innerText =
+        month.missed +
+        " пропущено";
+
+    const list =
+        document.getElementById(
+            "medicineStatsList"
+        );
+
+    list.innerHTML = "";
+
+    medicines.forEach(
+        medicine => {
+            if (
+                !Array.isArray(
+                    medicine.schedules
+                ) ||
+                medicine.schedules
+                    .length === 0
+            ) {
+                return;
+            }
+
+            let planned = 0;
+            let taken = 0;
+
+            for (
+                let offset = 0;
+                offset < 30;
+                offset++
+            ) {
+                const dateString =
+                    dateKey(
+                        dateFromOffset(
+                            offset
+                        )
+                    );
+
+                medicine.schedules
+                    .forEach(
+                        schedule => {
+                            planned++;
+
+                            if (
+                                history.some(
+                                    entry =>
+                                        entry.date ===
+                                            dateString &&
+                                        entry.medicineId ===
+                                            medicine.id &&
+                                        entry.scheduleId ===
+                                            schedule.id
+                                )
+                            ) {
+                                taken++;
+                            }
+                        }
+                    );
+            }
+
+            const percent =
+                planned === 0
+                    ? 0
+                    : Math.round(
+                        taken /
+                        planned *
+                        100
+                    );
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+            item.className =
+                "medicine-stat";
+
+            item.innerHTML = `
+                <div class="medicine-stat-icon">
+                    ${escapeHtml(
+                        medicine.icon ||
+                        "💊"
+                    )}
+                </div>
+
+                <div class="medicine-stat-info">
+
+                    <div class="medicine-stat-name">
+                        ${escapeHtml(
+                            medicine.name
+                        )}
+                    </div>
+
+                    <div class="medicine-stat-detail">
+                        ${taken} из ${planned}
+                        приёмов за 30 дней
+                    </div>
+
+                    <div class="stat-progress">
+                        <div
+                            class="stat-progress-fill"
+                            style="width: ${percent}%">
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="medicine-stat-percent">
+                    ${percent}%
+                </div>
+            `;
+
+            list.appendChild(item);
+        }
+    );
+
+    if (
+        medicines.length === 0
+    ) {
+        list.innerHTML =
+            '<div class="history-empty">Пока нет лекарств.</div>';
+    }
+}
+
+/* ========================================
+   HISTORY
+   ======================================== */
+
+function showHistoryPeriod(
+    period,
+    button
+) {
+    currentHistoryPeriod =
+        period;
+
+    document
+        .querySelectorAll(
+            ".history-tab"
+        )
+        .forEach(
+            tab =>
+                tab.classList.remove(
+                    "active"
+                )
+        );
+
+    if (button) {
+        button.classList.add(
+            "active"
+        );
+    }
+
+    renderHistory();
+}
+
+function renderHistory() {
+    const list =
+        document.getElementById(
+            "historyList"
+        );
+
+    list.innerHTML = "";
+
+    const days =
+        currentHistoryPeriod ===
+        "today"
+            ? 1
+            : currentHistoryPeriod ===
+              "week"
+                ? 7
+                : 30;
+
+    let foundAnything =
+        false;
+
+    for (
+        let offset = 0;
+        offset < days;
+        offset++
+    ) {
+        const date =
+            dateFromOffset(
+                offset
+            );
+
+        const dateString =
+            dateKey(date);
+
+        const dayItems = [];
+
+        medicines.forEach(
+            medicine => {
+                if (
+                    !Array.isArray(
+                        medicine.schedules
+                    )
+                ) {
+                    return;
+                }
+
+                medicine.schedules
+                    .forEach(
+                        schedule => {
+                            const historyEntry =
+                                history.find(
+                                    entry =>
+                                        entry.date ===
+                                            dateString &&
+                                        entry.medicineId ===
+                                            medicine.id &&
+                                        entry.scheduleId ===
+                                            schedule.id
+                                );
+
+                            dayItems.push({
+                                medicine,
+                                schedule,
+                                historyEntry
+                            });
+                        }
+                    );
+            }
+        );
+
+        if (
+            dayItems.length === 0
+        ) {
+            continue;
+        }
+
+        foundAnything = true;
+
+        dayItems.sort(
+            (a, b) =>
+                a.schedule.time.localeCompare(
+                    b.schedule.time
+                )
+        );
+
+        const dayBlock =
+            document.createElement(
+                "div"
+            );
+
+        dayBlock.className =
+            "history-day";
+
+        dayBlock.innerHTML = `
+            <div class="history-day-title">
+                ${escapeHtml(
+                    formatHistoryDate(
+                        date
+                    )
+                )}
+            </div>
+        `;
+
+        dayItems.forEach(
+            item => {
+                const {
+                    medicine,
+                    schedule,
+                    historyEntry
+                } = item;
+
+                const taken =
+                    !!historyEntry;
+
+                const historyItem =
+                    document.createElement(
+                        "div"
+                    );
+
+                historyItem.className =
+                    "history-item";
+
+                const actualTime =
+                    taken
+                        ? "Принято в " +
+                          historyEntry.time
+                        : "Не принято";
+
+                historyItem.innerHTML = `
+                    <div class="history-icon">
+                        ${escapeHtml(
+                            medicine.icon ||
+                            "💊"
+                        )}
+                    </div>
+
+                    <div class="history-info">
+
+                        <div class="history-time">
+                            ${escapeHtml(
+                                schedule.time
+                            )}
+                            ·
+                            ${escapeHtml(
+                                actualTime
+                            )}
+                        </div>
+
+                        <div class="history-name">
+                            ${escapeHtml(
+                                medicine.name
+                            )}
+                        </div>
+
+                        <div class="history-dose">
+                            ${escapeHtml(
+                                medicine.strength ||
+                                ""
+                            )}${medicine.strength ? " · " : ""}${escapeHtml(
+                                schedule.amount
+                            )} шт.
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="history-status ${
+                            taken
+                                ? "taken"
+                                : "missed"
+                        }">
+                        ${
+                            taken
+                                ? "✓"
+                                : "○"
+                        }
+                    </div>
+                `;
+
+                dayBlock.appendChild(
+                    historyItem
+                );
+            }
+        );
+
+        list.appendChild(
+            dayBlock
+        );
+    }
+
+    if (!foundAnything) {
+        list.innerHTML =
+            '<div class="history-empty">Здесь пока нет истории приёмов.</div>';
+    }
+}
+
+/* ========================================
+   START
+   ======================================== */
+
+async function startApp() {
+    showDate();
+
+    try {
+        const {
+            data,
+            error
+        } =
+            await supabaseClient
+                .auth
+                .getSession();
+
+        if (error)
+            throw error;
+
+        if (data.session) {
+            await finishLogin(
+                data.session
+            );
+        } else {
+            setAppVisible(false);
+        }
+
+    } catch (error) {
+        console.error(error);
+
+        setAppVisible(false);
+
+        authMessage(
+            "Не удалось подключиться к серверу. Проверь настройки Supabase.",
+            true
+        );
+    }
+}
+
+supabaseClient.auth.onAuthStateChange(
+    (event, session) => {
+        if (
+            event ===
+            "SIGNED_OUT"
+        ) {
+            currentUser = null;
+            medicines = [];
+            history = [];
+
+            setAppVisible(false);
+        }
+    }
+);
+
+/* SERVICE WORKER */
+
+if ("serviceWorker" in navigator) {
+    window.addEventListener(
+        "load",
+        function () {
+            navigator.serviceWorker
+                .register("./sw.js")
+                .then(
+                    registration => {
+                        console.log(
+                            "Service Worker registered:",
+                            registration.scope
+                        );
+
+                        updateNotificationButton();
+                    }
+                )
+                .catch(
+                    error => {
+                        console.error(
+                            "Service Worker registration failed:",
+                            error
+                        );
+                    }
+                );
+        }
+    );
+}
+
+startApp();
+</script>
+
+</body>
+</html>
